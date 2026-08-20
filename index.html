@@ -5,18 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>PFA机甲大师战队招新面试系统</title>
   <script type="module">
-    // 从 jsdelivr CDN 加载 CloudBase SDK (ESM格式)
-    import { init, registerComponent } from 'https://cdn.jsdelivr.net/npm/@cloudbase/js-sdk@3.8.1/dist/index.esm.js';
+    // 从 esm.sh CDN 加载 CloudBase SDK（自动打包所有依赖）
+    import cloudbaseSdk from 'https://esm.sh/@cloudbase/js-sdk@3.8.1';
     
-    // 注册所有组件到全局
     try {
-      // 初始化SDK并设置到全局
-      const app = init({ env: 'cloud1-d1gohkpsfbd31a269' });
+      const app = cloudbaseSdk.init({ env: 'cloud1-d1gohkpsfbd31a269' });
       window.__CLOUDBASE_APP__ = app;
-      window.cloudbase = { init: (config) => init(config) };
+      window.cloudbase = cloudbaseSdk;
       window.__CLOUDBASE_READY = true;
       window.dispatchEvent(new Event('cloudbase-ready'));
-      console.log('CloudBase SDK loaded from CDN (ESM)');
+      console.log('CloudBase SDK loaded from esm.sh');
     } catch(e) {
       console.error('CloudBase SDK load error:', e);
       window.__CLOUDBASE_FAILED = true;
@@ -759,7 +757,7 @@
     async function initCloud() {
       var loaded = (typeof cloudbase !== 'undefined') || (typeof window.__CLOUDBASE_APP__ !== 'undefined') || (await waitForSDK(15000));
       if (!loaded) {
-        throw new Error('CloudBase SDK 加载失败。请确认网络能访问 cdn.jsdelivr.net，然后刷新页面重试。');
+        throw new Error('CloudBase SDK 加载失败。请确认网络能访问 esm.sh，然后刷新页面重试。');
       }
       cbApp = window.__CLOUDBASE_APP__ || cloudbase.init({ env: ENV_ID });
 
