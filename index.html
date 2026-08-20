@@ -4,7 +4,43 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>PFA机甲大师战队招新面试系统</title>
-  <script src="https://static.cloudbase.net/cloudbase-js-sdk/3.0.1/cloudbase.full.js"></script>
+  <script>
+  // 多CDN备选加载 CloudBase SDK
+  (function(){
+    var CDN_LIST = [
+      'https://static.cloudbase.net/cloudbase-js-sdk/3.0.1/cloudbase.full.js',
+      'https://unpkg.com/@cloudbase/js-sdk@3.0.1/dist/cloudbase.full.js',
+      'https://cdn.jsdelivr.net/npm/@cloudbase/js-sdk@3.0.1/dist/cloudbase.full.js',
+      'https://unpkg.com/@cloudbase/js-sdk@2.6.0/dist/cloudbase.full.js',
+      'https://cdn.jsdelivr.net/npm/@cloudbase/js-sdk@2.6.0/dist/cloudbase.full.js'
+    ];
+    var idx = 0;
+    function loadNext(){
+      if(idx >= CDN_LIST.length){
+        window.__CLOUDBASE_FAILED = true;
+        window.dispatchEvent(new Event('cloudbase-failed'));
+        return;
+      }
+      var s = document.createElement('script');
+      s.src = CDN_LIST[idx];
+      s.onload = function(){
+        if(typeof cloudbase !== 'undefined'){
+          window.__CLOUDBASE_READY = true;
+          window.dispatchEvent(new Event('cloudbase-ready'));
+        } else {
+          idx++;
+          loadNext();
+        }
+      };
+      s.onerror = function(){
+        idx++;
+        loadNext();
+      };
+      document.head.appendChild(s);
+    }
+    loadNext();
+  })();
+  </script>
   <style>
     /* ===== CSS Variables ===== */
     :root {
@@ -720,9 +756,28 @@
     let cloudReady = false;
 
     // ===== CloudBase 初始化 =====
+    async function waitForSDK(timeout){
+      if(typeof cloudbase !== 'undefined') return true;
+      if(window.__CLOUDBASE_FAILED) return false;
+      timeout = timeout || 15000;
+      var start = Date.now();
+      return new Promise(function(resolve){
+        function check(){
+          if(typeof cloudbase !== 'undefined'){ resolve(true); return; }
+          if(window.__CLOUDBASE_FAILED){ resolve(false); return; }
+          if(Date.now() - start > timeout){ resolve(false); return; }
+          setTimeout(check, 100);
+        }
+        window.addEventListener('cloudbase-ready', function(){ resolve(true) }, {once:true});
+        window.addEventListener('cloudbase-failed', function(){ resolve(false) }, {once:true});
+        check();
+      });
+    }
+
     async function initCloud() {
-      if (typeof cloudbase === 'undefined') {
-        throw new Error('CloudBase SDK 未加载，请检查网络连接');
+      var loaded = await waitForSDK(20000);
+      if (!loaded) {
+        throw new Error('CloudBase SDK 加载失败，请检查网络连接或稍后重试。如果持续失败，请尝试更换网络环境（如使用手机热点）。');
       }
       cbApp = cloudbase.init({ env: ENV_ID });
 
