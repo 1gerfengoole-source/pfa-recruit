@@ -1,0 +1,3295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>PFA机甲大师战队招新面试系统</title>
+  <script type="module">
+    // 从 jsdelivr CDN 加载 CloudBase SDK (ESM格式)
+    import { init, registerComponent } from 'https://cdn.jsdelivr.net/npm/@cloudbase/js-sdk@3.8.1/dist/index.esm.js';
+    
+    // 注册所有组件到全局
+    try {
+      // 初始化SDK并设置到全局
+      const app = init({ env: 'cloud1-d1gohkpsfbd31a269' });
+      window.__CLOUDBASE_APP__ = app;
+      window.cloudbase = { init: (config) => init(config) };
+      window.__CLOUDBASE_READY = true;
+      window.dispatchEvent(new Event('cloudbase-ready'));
+      console.log('CloudBase SDK loaded from CDN (ESM)');
+    } catch(e) {
+      console.error('CloudBase SDK load error:', e);
+      window.__CLOUDBASE_FAILED = true;
+      window.dispatchEvent(new Event('cloudbase-failed'));
+    }
+  </script>
+  <style>
+    /* ===== CSS Variables ===== */
+    :root {
+      --nav-bg: #111827;
+      --page-bg: #F5F6FA;
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --primary-light: #818cf8;
+      --primary-bg: #eef2ff;
+      --success: #10b981;
+      --success-bg: #d1fae5;
+      --warning: #f59e0b;
+      --warning-bg: #fef3c7;
+      --danger: #ef4444;
+      --danger-bg: #fee2e2;
+      --info: #3b82f6;
+      --info-bg: #dbeafe;
+      --text: #1f2937;
+      --text-secondary: #4b5563;
+      --text-light: #9ca3af;
+      --border: #e5e7eb;
+      --card-bg: #ffffff;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+      --shadow: 0 2px 8px rgba(0,0,0,0.08);
+      --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+      --radius: 14px;
+      --radius-sm: 8px;
+      --radius-xs: 6px;
+      --max-width: 480px;
+    }
+
+    /* ===== Reset ===== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html { font-size: 15px; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      background: var(--page-bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { text-decoration: none; color: var(--primary); }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; }
+    input, textarea, select { font-family: inherit; outline: none; }
+
+    /* ===== Loading Screen ===== */
+    .loading-screen {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: var(--nav-bg); color: #fff;
+      z-index: 9999; gap: 20px;
+    }
+    .loading-logo {
+      width: 72px; height: 72px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; font-weight: 800; color: #fff;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 20px rgba(99,102,241,0.4);
+    }
+    .loading-screen p { font-size: 14px; opacity: 0.8; }
+
+    /* ===== Error Screen ===== */
+    .error-screen {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: var(--page-bg); gap: 16px;
+      z-index: 9999; padding: 40px;
+    }
+    .error-icon {
+      width: 64px; height: 64px;
+      background: var(--danger-bg); color: var(--danger);
+      border-radius: 50%; font-size: 32px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .error-screen h2 { font-size: 20px; }
+    .error-screen p { font-size: 14px; color: var(--text-secondary); text-align: center; }
+
+    /* ===== Spinner ===== */
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid rgba(255,255,255,0.2);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    .spinner-dark {
+      border-color: rgba(99,102,241,0.15);
+      border-top-color: var(--primary);
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== App Layout ===== */
+    #app {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      min-height: 100vh;
+      background: var(--page-bg);
+      position: relative;
+      box-shadow: 0 0 40px rgba(0,0,0,0.05);
+      display: flex; flex-direction: column;
+    }
+
+    /* ===== Navbar ===== */
+    .navbar {
+      background: var(--nav-bg);
+      color: #fff;
+      padding: 10px 16px;
+      display: flex; align-items: center;
+      justify-content: space-between;
+      position: sticky; top: 0;
+      z-index: 100;
+      flex-shrink: 0;
+    }
+    .navbar-left { display: flex; align-items: center; gap: 10px; }
+    .navbar-logo {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 800;
+    }
+    .navbar-title { font-size: 16px; font-weight: 600; }
+    .navbar-right { display: flex; align-items: center; gap: 8px; }
+    .navbar-user { font-size: 13px; opacity: 0.85; }
+    .navbar-back {
+      color: #fff; font-size: 20px;
+      padding: 4px 8px; line-height: 1;
+    }
+
+    /* ===== App Content ===== */
+    .app-content {
+      flex: 1;
+      padding-bottom: 0;
+      overflow-y: auto;
+    }
+    .page { padding: 16px; }
+    .page-no-pad { padding: 0; }
+
+    /* ===== TabBar ===== */
+    .tabbar {
+      display: none;
+      background: #fff;
+      border-top: 1px solid var(--border);
+      padding: 6px 0;
+      padding-bottom: env(safe-area-inset-bottom, 6px);
+      position: sticky; bottom: 0;
+      z-index: 100;
+      flex-shrink: 0;
+    }
+    .tabbar.show { display: flex; }
+    .tab-item {
+      flex: 1;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 2px;
+      padding: 4px 0;
+      color: var(--text-light);
+      font-size: 11px;
+      transition: color 0.2s;
+    }
+    .tab-item svg { width: 24px; height: 24px; }
+    .tab-item.active { color: var(--primary); }
+
+    /* ===== Buttons ===== */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 6px;
+      padding: 12px 20px;
+      border-radius: var(--radius-sm);
+      font-size: 15px; font-weight: 600;
+      transition: all 0.2s;
+      width: 100%;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(99,102,241,0.3);
+    }
+    .btn-secondary {
+      background: var(--card-bg); color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-warning { background: var(--warning); color: #fff; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); }
+    .btn-outline-primary { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
+    .btn-sm { padding: 6px 14px; font-size: 13px; width: auto; }
+    .btn-block { width: 100%; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ===== Form Elements ===== */
+    .form-group { margin-bottom: 16px; }
+    .form-label {
+      display: block; font-size: 14px; font-weight: 600;
+      margin-bottom: 6px; color: var(--text);
+    }
+    .form-label .req { color: var(--danger); margin-left: 2px; }
+    .form-input, .form-textarea, .form-select {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 15px;
+      background: #fff;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-input:focus, .form-textarea:focus, .form-select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+    }
+    .form-textarea { resize: vertical; min-height: 80px; }
+    .form-input-group {
+      position: relative;
+      display: flex; align-items: center;
+    }
+    .form-input-group .form-input { padding-right: 44px; }
+    .input-toggle {
+      position: absolute; right: 10px;
+      color: var(--text-light); font-size: 18px;
+      padding: 4px; user-select: none;
+    }
+    .form-hint { font-size: 12px; color: var(--text-light); margin-top: 4px; }
+    .form-error { font-size: 12px; color: var(--danger); margin-top: 4px; }
+
+    /* ===== Cards ===== */
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 12px;
+    }
+    .card-title {
+      font-size: 16px; font-weight: 700;
+      margin-bottom: 12px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    /* ===== Status Badges ===== */
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 12px; font-weight: 600;
+    }
+    .badge-pending { background: var(--warning-bg); color: #92400e; }
+    .badge-passed { background: var(--success-bg); color: #065f46; }
+    .badge-rejected { background: var(--danger-bg); color: #991b1b; }
+    .badge-info { background: var(--info-bg); color: #1e40af; }
+    .badge-gray { background: #f3f4f6; color: var(--text-secondary); }
+    .badge-primary { background: var(--primary-bg); color: var(--primary-dark); }
+
+    /* ===== Auth Pages ===== */
+    .auth-page { padding: 32px 24px; min-height: 100vh; display: flex; flex-direction: column; }
+    .auth-logo {
+      width: 80px; height: 80px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; font-weight: 800; color: #fff;
+      margin: 0 auto 20px;
+      box-shadow: 0 4px 20px rgba(99,102,241,0.35);
+    }
+    .auth-title { text-align: center; font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+    .auth-subtitle { text-align: center; font-size: 14px; color: var(--text-secondary); margin-bottom: 32px; }
+    .auth-form { flex: 1; }
+    .auth-footer { text-align: center; margin-top: 20px; font-size: 14px; color: var(--text-secondary); }
+    .auth-footer a { font-weight: 600; }
+
+    /* ===== Home Page ===== */
+    .hero {
+      background: linear-gradient(135deg, var(--nav-bg), #1e293b);
+      color: #fff;
+      padding: 32px 20px;
+      border-radius: 0 0 24px 24px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .hero h1 { font-size: 20px; margin-bottom: 8px; }
+    .hero p { font-size: 14px; opacity: 0.8; margin-bottom: 16px; }
+    .hero-tag {
+      display: inline-block;
+      padding: 4px 12px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 20px;
+      font-size: 12px;
+      margin: 3px;
+    }
+    .section-title {
+      font-size: 17px; font-weight: 700;
+      margin: 20px 4px 12px;
+    }
+    .process-list { display: flex; flex-direction: column; gap: 0; }
+    .process-step {
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 12px 0;
+    }
+    .process-num {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--primary-bg);
+      color: var(--primary);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 14px;
+      flex-shrink: 0;
+    }
+    .process-step:last-child .process-line { display: none; }
+    .process-content h4 { font-size: 15px; margin-bottom: 2px; }
+    .process-content p { font-size: 13px; color: var(--text-secondary); }
+    .process-line {
+      width: 2px; height: 24px;
+      background: var(--border);
+      margin-left: 15px;
+      margin-top: 4px;
+    }
+
+    /* ===== My Page ===== */
+    .my-header {
+      background: linear-gradient(135deg, var(--nav-bg), #1e293b);
+      color: #fff;
+      padding: 24px 20px;
+      display: flex; align-items: center; gap: 14px;
+      border-radius: 0 0 20px 20px;
+      margin-bottom: 16px;
+    }
+    .my-avatar {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; font-weight: 700;
+      flex-shrink: 0;
+    }
+    .my-name { font-size: 18px; font-weight: 700; }
+    .my-role { font-size: 12px; opacity: 0.7; margin-top: 2px; }
+
+    /* ===== Progress Steps ===== */
+    .progress-steps {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding: 16px 8px;
+      background: #fff;
+      border-radius: var(--radius);
+      margin-bottom: 12px;
+      box-shadow: var(--shadow-sm);
+    }
+    .ps-item {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 6px;
+      flex: 1; position: relative;
+    }
+    .ps-dot {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700;
+      background: #f3f4f6; color: var(--text-light);
+      transition: all 0.3s;
+    }
+    .ps-item.done .ps-dot { background: var(--success); color: #fff; }
+    .ps-item.active .ps-dot { background: var(--primary); color: #fff; box-shadow: 0 0 0 4px var(--primary-bg); }
+    .ps-label { font-size: 11px; color: var(--text-secondary); }
+    .ps-item.done .ps-label, .ps-item.active .ps-label { color: var(--text); font-weight: 600; }
+    .ps-line {
+      position: absolute;
+      top: 14px; right: -50%;
+      width: 100%; height: 2px;
+      background: var(--border);
+    }
+    .ps-item:last-child .ps-line { display: none; }
+    .ps-item.done .ps-line { background: var(--success); }
+
+    /* ===== Info Row ===== */
+    .info-row {
+      display: flex; justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { font-size: 14px; color: var(--text-secondary); }
+    .info-value { font-size: 14px; font-weight: 600; text-align: right; }
+
+    /* ===== Booking ===== */
+    .session-card { margin-bottom: 16px; }
+    .slot-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .slot-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      transition: all 0.2s;
+    }
+    .slot-item.available { border-color: var(--primary); background: var(--primary-bg); }
+    .slot-item.full { opacity: 0.5; }
+    .slot-time { font-size: 14px; font-weight: 600; }
+    .slot-cap { font-size: 12px; color: var(--text-light); }
+
+    /* ===== Admin Pages ===== */
+    .admin-header { padding: 16px; }
+    .admin-tabs {
+      display: flex; gap: 8px;
+      padding: 0 16px 12px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .admin-tab {
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px; font-weight: 600;
+      white-space: nowrap;
+      background: #fff; color: var(--text-secondary);
+      border: 1px solid var(--border);
+      transition: all 0.2s;
+    }
+    .admin-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .search-bar {
+      padding: 0 16px 12px;
+    }
+    .search-input {
+      width: 100%; padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: 14px; background: #fff;
+    }
+
+    .app-card {
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 10px;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.15s;
+    }
+    .app-card:active { transform: scale(0.98); }
+    .app-card-header {
+      display: flex; justify-content: space-between;
+      align-items: flex-start; margin-bottom: 8px;
+    }
+    .app-card-name { font-size: 16px; font-weight: 700; }
+    .app-card-meta { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+    .app-card-info { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--text-secondary); }
+
+    /* ===== Modal ===== */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      display: none;
+      align-items: flex-end; justify-content: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-content {
+      background: #fff;
+      width: 100%; max-width: var(--max-width);
+      max-height: 85vh;
+      border-radius: 20px 20px 0 0;
+      padding: 20px;
+      overflow-y: auto;
+      animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .modal-header {
+      display: flex; justify-content: space-between;
+      align-items: center; margin-bottom: 16px;
+    }
+    .modal-title { font-size: 18px; font-weight: 700; }
+    .modal-close { font-size: 24px; color: var(--text-light); padding: 4px; line-height: 1; }
+
+    /* ===== Toast ===== */
+    .toast {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(0,0,0,0.85);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 24px;
+      font-size: 14px;
+      z-index: 2000;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s;
+      max-width: 90%;
+      text-align: center;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ===== Star Rating ===== */
+    .star-rating { display: flex; gap: 4px; }
+    .star {
+      font-size: 28px; color: #d1d5db;
+      cursor: pointer; transition: color 0.15s;
+      user-select: none;
+    }
+    .star:hover { color: var(--warning); }
+    .star.active { color: var(--warning); }
+
+    /* ===== Bar Chart ===== */
+    .bar-chart { display: flex; flex-direction: column; gap: 10px; }
+    .bar-row { display: flex; align-items: center; gap: 10px; }
+    .bar-label { width: 80px; font-size: 13px; color: var(--text-secondary); flex-shrink: 0; text-align: right; }
+    .bar-bg {
+      flex: 1; height: 24px;
+      background: #f3f4f6;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--primary-light));
+      border-radius: 12px;
+      transition: width 0.6s ease;
+      min-width: 2px;
+    }
+    .bar-value { width: 36px; font-size: 13px; font-weight: 600; text-align: left; }
+
+    /* ===== Stat Cards ===== */
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .stat-card {
+      background: #fff; border-radius: var(--radius);
+      padding: 14px; text-align: center;
+      box-shadow: var(--shadow-sm);
+    }
+    .stat-num { font-size: 28px; font-weight: 800; color: var(--primary); }
+    .stat-label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+
+    /* ===== Form Config ===== */
+    .field-config-item {
+      background: #fff; border-radius: var(--radius-sm);
+      padding: 12px 14px; margin-bottom: 8px;
+      border: 1.5px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .fc-info { flex: 1; }
+    .fc-name { font-size: 15px; font-weight: 600; }
+    .fc-meta { font-size: 12px; color: var(--text-light); }
+    .fc-actions { display: flex; gap: 4px; }
+    .fc-btn {
+      width: 30px; height: 30px;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      background: #f3f4f6; color: var(--text-secondary);
+      transition: all 0.15s;
+    }
+    .fc-btn:active { background: var(--border); }
+    .fc-btn.danger { color: var(--danger); }
+
+    /* ===== Misc ===== */
+    .empty-state {
+      text-align: center; padding: 48px 20px;
+      color: var(--text-light);
+    }
+    .empty-state-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; }
+
+    .loading-state {
+      text-align: center; padding: 40px 20px;
+      color: var(--text-light);
+    }
+    .loading-state .spinner { margin: 0 auto 12px; }
+    .loading-state p { font-size: 14px; }
+
+    .link-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px;
+      background: #fff;
+      border-radius: var(--radius-sm);
+      margin-bottom: 8px;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.15s;
+    }
+    .link-row:active { transform: scale(0.98); }
+    .link-row-left { display: flex; align-items: center; gap: 12px; }
+    .link-row-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .link-row-title { font-size: 15px; font-weight: 600; }
+    .link-row-desc { font-size: 12px; color: var(--text-light); }
+    .link-row-arrow { color: var(--text-light); font-size: 18px; }
+
+    .divider { height: 1px; background: var(--border); margin: 16px 0; }
+    .text-center { text-align: center; }
+    .text-sm { font-size: 13px; }
+    .text-light { color: var(--text-light); }
+    .mb-0 { margin-bottom: 0; }
+    .mb-8 { margin-bottom: 8px; }
+    .mb-16 { margin-bottom: 16px; }
+    .mt-16 { margin-top: 16px; }
+    .flex { display: flex; }
+    .gap-8 { gap: 8px; }
+    .between { justify-content: space-between; }
+    .center { align-items: center; }
+    .wrap { flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div id="loading-screen" class="loading-screen">
+    <div class="loading-logo">PFA</div>
+    <div class="spinner"></div>
+    <p>正在连接云服务...</p>
+  </div>
+
+  <!-- Error Screen -->
+  <div id="error-screen" class="error-screen" style="display:none">
+    <div class="error-icon">!</div>
+    <h2>连接失败</h2>
+    <p id="error-message">无法连接到云服务，请检查网络后重试</p>
+    <button id="retry-btn" class="btn btn-primary" style="max-width:200px">重试</button>
+  </div>
+
+  <!-- App -->
+  <div id="app" style="display:none">
+    <nav id="navbar" class="navbar">
+      <div class="navbar-left">
+        <span id="navbar-back-btn" class="navbar-back" style="display:none">&larr;</span>
+        <span class="navbar-logo">PFA</span>
+        <span class="navbar-title" id="navbar-title">招新面试系统</span>
+      </div>
+      <div class="navbar-right">
+        <span id="navbar-user" class="navbar-user"></span>
+      </div>
+    </nav>
+    <main id="app-content" class="app-content"></main>
+    <nav id="tabbar" class="tabbar">
+      <a href="#/home" class="tab-item" data-tab="home">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l-10 9h3v9h6v-6h2v6h6v-9h3z"/></svg>
+        <span>首页</span>
+      </a>
+      <a href="#/apply" class="tab-item" data-tab="apply">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+        <span>报名</span>
+      </a>
+      <a href="#/my" class="tab-item" data-tab="my">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a5 5 0 100-10 5 5 0 000 10zm0 2c-5 0-9 2.5-9 5.5V22h18v-2.5c0-3-4-5.5-9-5.5z"/></svg>
+        <span>我的</span>
+      </a>
+    </nav>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Modal -->
+  <div id="modal-overlay" class="modal-overlay">
+    <div class="modal-content" id="modal-content"></div>
+  </div>
+
+  <script>
+    /* ================================================================
+     * PFA机甲大师战队招新面试报名系统 - 网页版
+     * 连接腾讯云开发 CloudBase 云数据库
+     * ================================================================ */
+
+    // ===== 常量 =====
+    const ENV_ID = 'cloud1-d1gohkpsfbd31a269';
+
+    const DEFAULT_FIELDS = [
+      { id: 'f_name', key: 'name', label: '姓名', type: 'text', required: true, placeholder: '请输入姓名', options: [], isSystem: true },
+      { id: 'f_gender', key: 'gender', label: '性别', type: 'select', required: false, placeholder: '请选择性别', options: ['男', '女'], isSystem: false },
+      { id: 'f_college', key: 'college', label: '学院专业', type: 'text', required: true, placeholder: '例如：机械工程学院 / 自动化', options: [], isSystem: false },
+      { id: 'f_grade', key: 'grade', label: '年级', type: 'text', required: true, placeholder: '例如：大一 / 大二 / 研一', options: [], isSystem: false },
+      { id: 'f_phone', key: 'phone', label: '手机号', type: 'number', required: true, placeholder: '请输入手机号', options: [], isSystem: true },
+      { id: 'f_email', key: 'email', label: '邮箱', type: 'text', required: true, placeholder: '用于接收面试结果通知', options: [], isSystem: true },
+      { id: 'f_firstGroup', key: 'firstGroup', label: '第一志愿', type: 'select', required: true, placeholder: '请选择组别', options: ['机械组', '电控组', '视觉组', '硬件组', '运宣组'], isSystem: true },
+      { id: 'f_secondGroup', key: 'secondGroup', label: '第二志愿', type: 'select', required: false, placeholder: '请选择组别', options: ['机械组', '电控组', '视觉组', '硬件组', '运宣组'], isSystem: false },
+      { id: 'f_skills', key: 'skills', label: '技能基础', type: 'textarea', required: false, placeholder: '例如：C语言、SolidWorks、STM32、Python、OpenCV 等', options: [], isSystem: false },
+      { id: 'f_experience', key: 'experience', label: '项目经历', type: 'textarea', required: false, placeholder: '可以填写课程设计、竞赛经历、机器人相关项目等', options: [], isSystem: false },
+      { id: 'f_intro', key: 'intro', label: '自我介绍', type: 'textarea', required: false, placeholder: '说说你为什么想加入 PFA', options: [], isSystem: false }
+    ];
+
+    const EMAIL_TEMPLATES = {
+      passed: { subject: 'PFA机甲大师战队面试通过通知', content: '同学你好：\n\n恭喜你通过了PFA机甲大师战队的面试！欢迎加入我们的团队，请留意后续的入队安排通知。\n\nPFA机甲大师战队' },
+      failed: { subject: 'PFA机甲大师战队面试结果通知', content: '同学你好：\n\n感谢你对PFA机甲大师战队的关注与支持。经过面试评估，很遗憾你未能通过本次招新。希望你在未来的学习生活中一切顺利！\n\nPFA机甲大师战队' },
+      waitlist: { subject: 'PFA机甲大师战队候补通知', content: '同学你好：\n\n你已进入PFA机甲大师战队的候补名单。如有名额空缺，我们将按顺序与你联系，请保持通讯畅通。\n\nPFA机甲大师战队' },
+      training: { subject: 'PFA机甲大师战队试训通知', content: '同学你好：\n\n恭喜你进入PFA机甲大师战队的试训阶段。试训期间请按时参加各项活动，具体安排将另行通知。\n\nPFA机甲大师战队' }
+    };
+
+    const GROUPS = ['机械组', '电控组', '视觉组', '硬件组', '运宣组'];
+
+    // ===== 全局状态 =====
+    let cbApp = null;
+    let db = null;
+    let cmd = null;
+    let cloudReady = false;
+
+    // ===== CloudBase 初始化 =====
+    async function waitForSDK(timeout){
+      if(typeof cloudbase !== 'undefined') return true;
+      if(window.__CLOUDBASE_FAILED) return false;
+      timeout = timeout || 15000;
+      var start = Date.now();
+      return new Promise(function(resolve){
+        function check(){
+          if(typeof cloudbase !== 'undefined'){ resolve(true); return; }
+          if(window.__CLOUDBASE_FAILED){ resolve(false); return; }
+          if(Date.now() - start > timeout){ resolve(false); return; }
+          setTimeout(check, 100);
+        }
+        window.addEventListener('cloudbase-ready', function(){ resolve(true) }, {once:true});
+        window.addEventListener('cloudbase-failed', function(){ resolve(false) }, {once:true});
+        check();
+      });
+    }
+
+    async function initCloud() {
+      var loaded = (typeof cloudbase !== 'undefined') || (typeof window.__CLOUDBASE_APP__ !== 'undefined') || (await waitForSDK(15000));
+      if (!loaded) {
+        throw new Error('CloudBase SDK 加载失败。请确认网络能访问 cdn.jsdelivr.net，然后刷新页面重试。');
+      }
+      cbApp = window.__CLOUDBASE_APP__ || cloudbase.init({ env: ENV_ID });
+
+      // 兼容 app.auth 和 app.auth() 两种调用方式
+      let auth;
+      if (typeof cbApp.auth === 'function') {
+        auth = cbApp.auth();
+      } else {
+        auth = cbApp.auth;
+      }
+
+      const result = await auth.signInAnonymously();
+      if (result && result.error) {
+        throw new Error(result.error.message || '匿名登录失败');
+      }
+
+      db = cbApp.database();
+      cmd = db.command;
+      cloudReady = true;
+    }
+
+    // ===== CloudDB 封装层 =====
+    const CloudDB = {
+      collection(name) {
+        const self = {
+          _where: null,
+          _order: null,
+          _limit: null,
+          _docId: null,
+
+          where(cond) { self._where = cond; return self; },
+          orderBy(field, dir) { self._order = { field, dir }; return self; },
+          limit(n) { self._limit = n; return self; },
+          doc(id) { self._docId = id; return self; },
+
+          async get() {
+            let q = db.collection(name);
+            if (self._where) q = q.where(self._where);
+            if (self._order) q = q.orderBy(self._order.field, self._order.dir);
+            if (self._limit) q = q.limit(self._limit);
+            const res = await q.get();
+            return res.data || [];
+          },
+
+          async getOne() {
+            const arr = await self.get();
+            return arr.length > 0 ? arr[0] : null;
+          },
+
+          async add(data) {
+            const res = await db.collection(name).add(data);
+            return res._id || res.id || (res.data && res.data._id) || null;
+          },
+
+          async update(data) {
+            if (self._docId) {
+              return await db.collection(name).doc(self._docId).update(data);
+            }
+            if (self._where) {
+              return await db.collection(name).where(self._where).update(data);
+            }
+            throw new Error('update 需要 doc(id) 或 where 条件');
+          },
+
+          async remove() {
+            if (self._docId) {
+              return await db.collection(name).doc(self._docId).remove();
+            }
+            if (self._where) {
+              return await db.collection(name).where(self._where).remove();
+            }
+            throw new Error('remove 需要 doc(id) 或 where 条件');
+          },
+
+          async count() {
+            let q = db.collection(name);
+            if (self._where) q = q.where(self._where);
+            const res = await q.count();
+            return res.total || 0;
+          }
+        };
+        return self;
+      },
+
+      async callFunction(name, data) {
+        const res = await cbApp.callFunction({ name, data });
+        return res.result;
+      }
+    };
+
+    // ===== 密码加密 (Web Crypto API, 兼容小程序 pbkdf2Sync) =====
+    async function hashPassword(password, salt) {
+      const enc = new TextEncoder();
+      const keyMaterial = await crypto.subtle.importKey(
+        'raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']
+      );
+      const bits = await crypto.subtle.deriveBits(
+        { name: 'PBKDF2', salt: enc.encode(salt), iterations: 1000, hash: 'SHA-512' },
+        keyMaterial, 512
+      );
+      return Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function generateSalt() {
+      const arr = new Uint8Array(16);
+      crypto.getRandomValues(arr);
+      return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    // ===== Session 管理 =====
+    const Session = {
+      get() {
+        try { return JSON.parse(localStorage.getItem('pfa_session')); }
+        catch { return null; }
+      },
+      set(data) {
+        localStorage.setItem('pfa_session', JSON.stringify(data));
+      },
+      clear() {
+        localStorage.removeItem('pfa_session');
+      },
+      get account() { const s = this.get(); return s ? s.account : null; },
+      get role() { const s = this.get(); return s ? s.role : null; }
+    };
+
+    // ===== 认证守卫 =====
+    function requireAuth() {
+      const session = Session.get();
+      if (!session) {
+        location.hash = '/login';
+        return null;
+      }
+      return session;
+    }
+
+    function requireRole(roles) {
+      const session = requireAuth();
+      if (!session) return null;
+      if (!roles.includes(session.role)) {
+        toast('无权限访问该页面');
+        setTimeout(() => { location.hash = '/home'; }, 800);
+        return null;
+      }
+      return session;
+    }
+
+    // ===== 工具函数 =====
+    let toastTimer = null;
+    function toast(msg, duration = 2500) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove('show'), duration);
+    }
+
+    function escapeHtml(str) {
+      if (str == null) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function formatDate(d) {
+      if (!d) return '-';
+      try {
+        if (typeof d === 'string') return d;
+        if (d instanceof Date) return d.toLocaleString('zh-CN', { hour12: false });
+        if (typeof d === 'object') {
+          if (d.$date) return new Date(d.$date).toLocaleString('zh-CN', { hour12: false });
+          if (d.iso) return new Date(d.iso).toLocaleString('zh-CN', { hour12: false });
+        }
+        return new Date(d).toLocaleString('zh-CN', { hour12: false });
+      } catch { return String(d); }
+    }
+
+    function formatDateShort(d) {
+      if (!d) return '-';
+      try {
+        let date;
+        if (typeof d === 'string') date = new Date(d);
+        else if (d instanceof Date) date = d;
+        else if (typeof d === 'object' && (d.$date || d.iso)) date = new Date(d.$date || d.iso);
+        else date = new Date(d);
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const h = String(date.getHours()).padStart(2, '0');
+        const min = String(date.getMinutes()).padStart(2, '0');
+        return `${y}-${m}-${day} ${h}:${min}`;
+      } catch { return String(d); }
+    }
+
+    function serverDate() {
+      try { return db.serverDate(); } catch { return new Date(); }
+    }
+
+    function parseHash() {
+      let hash = location.hash.slice(1) || '/login';
+      const [path, queryString] = hash.split('?');
+      const query = {};
+      if (queryString) {
+        queryString.split('&').forEach(pair => {
+          const [k, v] = pair.split('=');
+          if (k) query[decodeURIComponent(k)] = decodeURIComponent(v || '');
+        });
+      }
+      return { path, query };
+    }
+
+    function setContent(html, options = {}) {
+      const content = document.getElementById('app-content');
+      content.innerHTML = html;
+      // 导航栏控制
+      const navbar = document.getElementById('navbar');
+      navbar.style.display = options.navbar === false ? 'none' : 'flex';
+      // 返回按钮
+      const backBtn = document.getElementById('navbar-back-btn');
+      backBtn.style.display = options.back ? 'inline' : 'none';
+      // 标题
+      if (options.title) {
+        document.getElementById('navbar-title').textContent = options.title;
+      } else {
+        document.getElementById('navbar-title').textContent = '招新面试系统';
+      }
+      // 用户信息
+      const userEl = document.getElementById('navbar-user');
+      const session = Session.get();
+      if (session && options.navbar !== false) {
+        userEl.textContent = session.account;
+      } else {
+        userEl.textContent = '';
+      }
+      // TabBar
+      const tabbar = document.getElementById('tabbar');
+      if (options.tabBar) {
+        tabbar.classList.add('show');
+        updateTabBar();
+      } else {
+        tabbar.classList.remove('show');
+      }
+      // 滚动到顶部
+      content.scrollTop = 0;
+    }
+
+    function setLoading(msg = '加载中...') {
+      setContent(`<div class="loading-state"><div class="spinner spinner-dark"></div><p>${msg}</p></div>`);
+    }
+
+    function updateTabBar() {
+      const { path } = parseHash();
+      document.querySelectorAll('.tab-item').forEach(tab => {
+        const tabPath = tab.getAttribute('href').slice(1);
+        tab.classList.toggle('active', path === tabPath);
+      });
+    }
+
+    // ===== 状态文本/样式映射 =====
+    function reviewStatusText(s) {
+      return { pending: '待审核', passed: '已通过', rejected: '已拒绝' }[s] || '未知';
+    }
+    function reviewStatusBadge(s) {
+      return `badge-${s || 'pending'}`;
+    }
+    function bookingStatusText(s) {
+      return { not_open: '未开放', booked: '已预约', not_booked: '未预约', cancelled: '已取消' }[s] || s || '-';
+    }
+    function interviewResultText(s) {
+      return { not_started: '未面试', passed: '通过', failed: '未通过', waitlist: '候补', training: '试训中' }[s] || '未面试';
+    }
+    function interviewResultBadge(s) {
+      if (s === 'passed') return 'badge-passed';
+      if (s === 'failed') return 'badge-rejected';
+      if (s === 'waitlist') return 'badge-pending';
+      if (s === 'training') return 'badge-info';
+      return 'badge-gray';
+    }
+
+    // ===== Modal =====
+    function showModal(html) {
+      document.getElementById('modal-content').innerHTML = html;
+      document.getElementById('modal-overlay').classList.add('show');
+    }
+
+    function closeModal() {
+      document.getElementById('modal-overlay').classList.remove('show');
+    }
+
+    document.getElementById('modal-overlay').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+
+    // ===== 获取表单配置 =====
+    async function getFormConfig() {
+      try {
+        const config = await CloudDB.collection('config').where({ type: 'form_config' }).getOne();
+        if (config && config.fields && config.fields.length > 0) {
+          return config.fields;
+        }
+      } catch (e) {
+        console.warn('读取表单配置失败，使用默认值', e);
+      }
+      return DEFAULT_FIELDS;
+    }
+
+    // ===== 查找用户报名（跨端兼容） =====
+    async function findUserApplication(account) {
+      try {
+        // 优先按 account 字段查找（跨端标识）
+        let apps = await CloudDB.collection('applications').where({ account }).get();
+        if (apps.length > 0) return apps[0];
+        // 回退：从 accounts 查 openid，再按 _openid 查
+        const acc = await CloudDB.collection('accounts').where({ account }).getOne();
+        if (acc && acc.openid) {
+          apps = await CloudDB.collection('applications').where({ _openid: acc.openid }).get();
+          if (apps.length > 0) return apps[0];
+        }
+      } catch (e) {
+        console.error('查找用户报名失败', e);
+      }
+      return null;
+    }
+
+    // ===== 获取邀请码配置 =====
+    async function getInviteCodeConfig() {
+      try {
+        const config = await CloudDB.collection('config').where({ type: 'invite_code' }).getOne();
+        if (config) return config;
+      } catch (e) {
+        console.warn('读取邀请码配置失败', e);
+      }
+      return null;
+    }
+
+    // ================================================================
+    // ===== 路由系统 =====
+    // ================================================================
+    function router() {
+      const { path, query } = parseHash();
+
+      // 更新导航栏用户信息
+      const session = Session.get();
+      const userEl = document.getElementById('navbar-user');
+      if (session) userEl.textContent = session.account;
+      else userEl.textContent = '';
+
+      // 公开页面
+      if (path === '/login' || path === '/register') {
+        document.getElementById('navbar').style.display = 'none';
+        document.getElementById('tabbar').classList.remove('show');
+        if (path === '/login') renderLogin();
+        else renderRegister();
+        return;
+      }
+
+      // 默认重定向
+      if (path === '/' || path === '') {
+        location.hash = '/home';
+        return;
+      }
+
+      // 以下页面需要登录
+      switch (path) {
+        case '/home':
+          renderHome(); break;
+        case '/apply':
+          renderApply(); break;
+        case '/my':
+          renderMy(); break;
+        case '/booking':
+          renderBooking(); break;
+        case '/admin/applications':
+          if (requireRole(['interviewer', 'admin'])) renderAdminApplications();
+          break;
+        case '/admin/sessions':
+          if (requireRole(['admin'])) renderAdminSessions();
+          break;
+        case '/admin/review':
+          if (requireRole(['interviewer', 'admin'])) renderAdminReview(query.id);
+          break;
+        case '/admin/results':
+          if (requireRole(['admin'])) renderAdminResults();
+          break;
+        case '/admin/formConfig':
+          if (requireRole(['admin'])) renderAdminFormConfig();
+          break;
+        case '/admin/statistics':
+          if (requireRole(['admin'])) renderAdminStatistics();
+          break;
+        default:
+          location.hash = '/home';
+      }
+    }
+
+    // ================================================================
+    // ===== 页面1: 登录页 =====
+    // ================================================================
+    function renderLogin() {
+      const html = `
+        <div class="auth-page">
+          <div class="auth-logo">PFA</div>
+          <h1 class="auth-title">PFA 机甲大师战队</h1>
+          <p class="auth-subtitle">招新面试系统</p>
+          <div class="auth-form">
+            <div class="form-group">
+              <label class="form-label">账号</label>
+              <input type="text" id="login-account" class="form-input" placeholder="请输入账号" autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label class="form-label">密码</label>
+              <div class="form-input-group">
+                <input type="password" id="login-password" class="form-input" placeholder="请输入密码" autocomplete="off">
+                <span class="input-toggle" id="login-toggle">👁</span>
+              </div>
+            </div>
+            <button class="btn btn-primary" id="login-btn">登 录</button>
+          </div>
+          <p class="auth-footer">还没有账号？<a href="#/register">立即注册</a></p>
+        </div>
+      `;
+      setContent(html, { navbar: false, tabBar: false });
+
+      document.getElementById('login-toggle').addEventListener('click', function() {
+        const input = document.getElementById('login-password');
+        if (input.type === 'password') {
+          input.type = 'text';
+          this.textContent = '🙈';
+        } else {
+          input.type = 'password';
+          this.textContent = '👁';
+        }
+      });
+
+      document.getElementById('login-btn').addEventListener('click', handleLogin);
+      document.getElementById('login-password').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') handleLogin();
+      });
+    }
+
+    async function handleLogin() {
+      const account = document.getElementById('login-account').value.trim();
+      const password = document.getElementById('login-password').value;
+
+      if (!account || !password) {
+        toast('请输入账号和密码');
+        return;
+      }
+
+      const btn = document.getElementById('login-btn');
+      btn.disabled = true;
+      btn.textContent = '登录中...';
+
+      try {
+        // 查询账号
+        const userAccount = await CloudDB.collection('accounts').where({ account }).getOne();
+        if (!userAccount) {
+          toast('账号不存在');
+          return;
+        }
+
+        // 验证密码
+        const hash = await hashPassword(password, userAccount.salt);
+        if (hash !== userAccount.password) {
+          toast('密码错误');
+          return;
+        }
+
+        // 查询用户角色
+        const user = await CloudDB.collection('users').where({ account }).getOne();
+        const role = user ? (user.role || 'applicant') : 'applicant';
+
+        // 保存 session
+        Session.set({ account, role, userId: userAccount._id });
+        toast('登录成功');
+        setTimeout(() => {
+          location.hash = role === 'admin' ? '/admin/applications' : (role === 'interviewer' ? '/admin/applications' : '/home');
+        }, 500);
+      } catch (e) {
+        console.error('登录失败', e);
+        toast('登录失败：' + (e.message || '网络错误'));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '登 录';
+      }
+    }
+
+    // ================================================================
+    // ===== 页面2: 注册页 =====
+    // ================================================================
+    function renderRegister() {
+      const html = `
+        <div class="auth-page">
+          <div class="auth-logo">PFA</div>
+          <h1 class="auth-title">创建账号</h1>
+          <p class="auth-subtitle">加入 PFA 机甲大师战队招新系统</p>
+          <div class="auth-form">
+            <div class="form-group">
+              <label class="form-label">账号</label>
+              <input type="text" id="reg-account" class="form-input" placeholder="至少4个字符" autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label class="form-label">密码</label>
+              <div class="form-input-group">
+                <input type="password" id="reg-password" class="form-input" placeholder="请设置密码" autocomplete="off">
+                <span class="input-toggle" id="reg-toggle">👁</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">确认密码</label>
+              <input type="password" id="reg-confirm" class="form-input" placeholder="请再次输入密码" autocomplete="off">
+            </div>
+            <button class="btn btn-primary" id="reg-btn">注 册</button>
+          </div>
+          <p class="auth-footer">已有账号？<a href="#/login">返回登录</a></p>
+        </div>
+      `;
+      setContent(html, { navbar: false, tabBar: false });
+
+      document.getElementById('reg-toggle').addEventListener('click', function() {
+        const input = document.getElementById('reg-password');
+        if (input.type === 'password') {
+          input.type = 'text';
+          this.textContent = '🙈';
+        } else {
+          input.type = 'password';
+          this.textContent = '👁';
+        }
+      });
+
+      document.getElementById('reg-btn').addEventListener('click', handleRegister);
+    }
+
+    async function handleRegister() {
+      const account = document.getElementById('reg-account').value.trim();
+      const password = document.getElementById('reg-password').value;
+      const confirm = document.getElementById('reg-confirm').value;
+
+      if (account.length < 4) {
+        toast('账号至少4个字符');
+        return;
+      }
+      if (!password) {
+        toast('请输入密码');
+        return;
+      }
+      if (password !== confirm) {
+        toast('两次密码不一致');
+        return;
+      }
+
+      const btn = document.getElementById('reg-btn');
+      btn.disabled = true;
+      btn.textContent = '注册中...';
+
+      try {
+        // 检查账号是否已存在
+        const existing = await CloudDB.collection('accounts').where({ account }).getOne();
+        if (existing) {
+          toast('该账号已存在');
+          return;
+        }
+
+        // 生成 salt 并加密密码
+        const salt = await generateSalt();
+        const hash = await hashPassword(password, salt);
+
+        // 创建 accounts 记录
+        const accountId = await CloudDB.collection('accounts').add({
+          data: {
+            account,
+            password: hash,
+            salt,
+            openid: '',
+            createdAt: serverDate()
+          }
+        });
+
+        // 创建 users 记录
+        await CloudDB.collection('users').add({
+          data: {
+            account,
+            role: 'applicant',
+            openid: '',
+            createdAt: serverDate()
+          }
+        });
+
+        // 自动登录
+        Session.set({ account, role: 'applicant', userId: accountId });
+        toast('注册成功');
+        setTimeout(() => { location.hash = '/home'; }, 600);
+      } catch (e) {
+        console.error('注册失败', e);
+        toast('注册失败：' + (e.message || '网络错误'));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '注 册';
+      }
+    }
+
+    // ================================================================
+    // ===== 页面3: 首页 =====
+    // ================================================================
+    function renderHome() {
+      const session = requireAuth();
+      if (!session) return;
+
+      const html = `
+        <div class="page-no-pad">
+          <div class="hero">
+            <h1>PFA 机甲大师战队</h1>
+            <p>招新面试报名系统</p>
+            <div>
+              ${GROUPS.map(g => `<span class="hero-tag">${g}</span>`).join('')}
+            </div>
+          </div>
+        </div>
+        <div class="page">
+          <div class="card">
+            <div class="card-title">招新流程</div>
+            <div class="process-list">
+              ${[
+                { t: '在线报名', d: '填写个人信息和志愿组别' },
+                { t: '资料审核', d: '面试官审核报名信息' },
+                { t: '面试预约', d: '选择合适的面试时间段' },
+                { t: '参加面试', d: '到指定地点参加面试' },
+                { t: '结果通知', d: '通过邮件接收面试结果' }
+              ].map((s, i) => `
+                <div class="process-step">
+                  <div class="process-num">${i + 1}</div>
+                  <div class="process-content">
+                    <h4>${s.t}</h4>
+                    <p>${s.d}</p>
+                  </div>
+                </div>
+                ${i < 4 ? '<div class="process-line"></div>' : ''}
+              `).join('')}
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="location.hash='/apply'">立即报名</button>
+        </div>
+      `;
+      setContent(html, { tabBar: true });
+    }
+
+    // ================================================================
+    // ===== 页面4: 报名页 =====
+    // ================================================================
+    async function renderApply() {
+      const session = requireAuth();
+      if (!session) return;
+
+      setLoading('加载表单...');
+      try {
+        // 检查是否已提交报名
+        const existing = await findUserApplication(session.account);
+        if (existing) {
+          setContent(`
+            <div class="page">
+              <div class="card text-center">
+                <div style="font-size:48px;margin-bottom:12px">✓</div>
+                <h3 style="margin-bottom:8px">您已提交报名</h3>
+                <p class="text-light text-sm" style="margin-bottom:16px">报名信息已提交，请耐心等待审核</p>
+                <div class="info-row">
+                  <span class="info-label">审核状态</span>
+                  <span class="badge ${reviewStatusBadge(existing.reviewStatus)}">${reviewStatusText(existing.reviewStatus)}</span>
+                </div>
+                ${existing.reviewStatus === 'passed' ? `
+                  <button class="btn btn-primary mt-16" onclick="location.hash='/booking'">前往预约面试</button>
+                ` : ''}
+                <button class="btn btn-secondary mt-16" onclick="location.hash='/my'">查看详情</button>
+              </div>
+            </div>
+          `, { tabBar: true });
+          return;
+        }
+
+        // 加载表单配置
+        const fields = await getFormConfig();
+
+        const fieldsHtml = fields.map(f => {
+          const req = f.required ? '<span class="req">*</span>' : '';
+          switch (f.type) {
+            case 'textarea':
+              return `
+                <div class="form-group">
+                  <label class="form-label">${escapeHtml(f.label)}${req}</label>
+                  <textarea class="form-textarea" id="field-${f.key}" data-key="${f.key}" data-required="${f.required}" placeholder="${escapeHtml(f.placeholder || '')}"></textarea>
+                </div>
+              `;
+            case 'select':
+              return `
+                <div class="form-group">
+                  <label class="form-label">${escapeHtml(f.label)}${req}</label>
+                  <select class="form-select" id="field-${f.key}" data-key="${f.key}" data-required="${f.required}">
+                    <option value="">${escapeHtml(f.placeholder || '请选择')}</option>
+                    ${(f.options || []).map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('')}
+                  </select>
+                </div>
+              `;
+            case 'number':
+              return `
+                <div class="form-group">
+                  <label class="form-label">${escapeHtml(f.label)}${req}</label>
+                  <input type="number" class="form-input" id="field-${f.key}" data-key="${f.key}" data-required="${f.required}" placeholder="${escapeHtml(f.placeholder || '')}">
+                </div>
+              `;
+            default:
+              return `
+                <div class="form-group">
+                  <label class="form-label">${escapeHtml(f.label)}${req}</label>
+                  <input type="text" class="form-input" id="field-${f.key}" data-key="${f.key}" data-required="${f.required}" placeholder="${escapeHtml(f.placeholder || '')}">
+                </div>
+              `;
+          }
+        }).join('');
+
+        setContent(`
+          <div class="page">
+            <div class="card">
+              <div class="card-title">报名表</div>
+              <p class="text-light text-sm mb-16">请认真填写以下信息，提交后将进入审核流程</p>
+              <form id="apply-form">
+                ${fieldsHtml}
+                <button type="button" class="btn btn-primary" id="submit-apply">提交报名</button>
+              </form>
+            </div>
+          </div>
+        `, { tabBar: true });
+
+        document.getElementById('submit-apply').addEventListener('click', () => handleSubmitApply(fields, session));
+      } catch (e) {
+        console.error('加载报名页失败', e);
+        setContent(`
+          <div class="page">
+            <div class="card text-center">
+              <p class="text-light">加载失败，请重试</p>
+              <button class="btn btn-primary mt-16" onclick="location.reload()">重试</button>
+            </div>
+          </div>
+        `, { tabBar: true });
+      }
+    }
+
+    async function handleSubmitApply(fields, session) {
+      const btn = document.getElementById('submit-apply');
+      btn.disabled = true;
+      btn.textContent = '提交中...';
+
+      try {
+        const data = {};
+        let hasError = false;
+
+        // 收集并验证字段
+        for (const f of fields) {
+          const el = document.getElementById('field-' + f.key);
+          if (!el) continue;
+          const val = el.value.trim();
+          if (f.required && !val) {
+            toast(`请填写${f.label}`);
+            hasError = true;
+            break;
+          }
+          if (f.key === 'email' && val) {
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+              toast('邮箱格式不正确');
+              hasError = true;
+              break;
+            }
+          }
+          data[f.key] = val;
+        }
+
+        if (hasError) return;
+
+        // 再次检查是否已提交
+        const existing = await findUserApplication(session.account);
+        if (existing) {
+          toast('您已提交过报名');
+          setTimeout(() => { location.hash = '/my'; }, 800);
+          return;
+        }
+
+        // 创建报名记录
+        await CloudDB.collection('applications').add({
+          data: {
+            _openid: '',
+            account: session.account,
+            ...data,
+            reviewStatus: 'pending',
+            bookingStatus: 'not_open',
+            interviewResult: 'not_started',
+            interviewSlotId: '',
+            interviewTimeText: '',
+            createdAt: serverDate(),
+            updatedAt: serverDate()
+          }
+        });
+
+        toast('报名提交成功');
+        setTimeout(() => { location.hash = '/my'; }, 800);
+      } catch (e) {
+        console.error('提交报名失败', e);
+        toast('提交失败：' + (e.message || '网络错误'));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '提交报名';
+      }
+    }
+
+    // ================================================================
+    // ===== 页面5: 我的页面 =====
+    // ================================================================
+    async function renderMy() {
+      const session = requireAuth();
+      if (!session) return;
+
+      setLoading('加载中...');
+      try {
+        // 获取用户报名信息
+        const application = await findUserApplication(session.account);
+
+        // 构建进度步骤
+        let progressSteps = '';
+        if (application) {
+          const steps = [
+            { label: '报名', done: true, active: false },
+            { label: '审核', done: application.reviewStatus === 'passed', active: application.reviewStatus === 'pending' },
+            { label: '预约', done: application.bookingStatus === 'booked', active: application.reviewStatus === 'passed' && application.bookingStatus !== 'booked' },
+            { label: '面试', done: ['passed', 'failed', 'waitlist', 'training'].includes(application.interviewResult), active: application.bookingStatus === 'booked' && application.interviewResult === 'not_started' },
+            { label: '结果', done: ['passed', 'failed', 'waitlist', 'training'].includes(application.interviewResult), active: false }
+          ];
+          progressSteps = `
+            <div class="progress-steps">
+              ${steps.map(s => `
+                <div class="ps-item ${s.done ? 'done' : ''} ${s.active ? 'active' : ''}">
+                  <div class="ps-dot">${s.done ? '✓' : ''}</div>
+                  <span class="ps-label">${s.label}</span>
+                  <div class="ps-line"></div>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        }
+
+        // 构建报名信息卡片
+        let appCardHtml = '';
+        if (application) {
+          const fields = await getFormConfig();
+          const fieldRows = fields.map(f => {
+            const val = application[f.key];
+            if (!val) return '';
+            return `<div class="info-row"><span class="info-label">${escapeHtml(f.label)}</span><span class="info-value">${escapeHtml(val)}</span></div>`;
+          }).join('');
+
+          appCardHtml = `
+            <div class="card">
+              <div class="card-title">报名信息</div>
+              <div class="info-row">
+                <span class="info-label">审核状态</span>
+                <span class="badge ${reviewStatusBadge(application.reviewStatus)}">${reviewStatusText(application.reviewStatus)}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">面试时间</span>
+                <span class="info-value">${escapeHtml(application.interviewTimeText || '未预约')}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">面试结果</span>
+                <span class="badge ${interviewResultBadge(application.interviewResult)}">${interviewResultText(application.interviewResult)}</span>
+              </div>
+              ${fieldRows}
+            </div>
+          `;
+        } else {
+          appCardHtml = `
+            <div class="card text-center">
+              <div style="font-size:40px;margin-bottom:8px;opacity:0.3">📋</div>
+              <p class="text-light text-sm mb-16">尚未提交报名</p>
+              <button class="btn btn-primary" onclick="location.hash='/apply'">去报名</button>
+            </div>
+          `;
+        }
+
+        // 审核通过显示预约入口
+        let bookingEntry = '';
+        if (application && application.reviewStatus === 'passed') {
+          bookingEntry = `
+            <div class="link-row" onclick="location.hash='/booking'">
+              <div class="link-row-left">
+                <div class="link-row-icon" style="background:var(--info-bg);color:var(--info)">📅</div>
+                <div>
+                  <div class="link-row-title">面试预约</div>
+                  <div class="link-row-desc">${application.bookingStatus === 'booked' ? '已预约，点击查看/取消' : '点击预约面试时间'}</div>
+                </div>
+              </div>
+              <span class="link-row-arrow">›</span>
+            </div>
+          `;
+        }
+
+        // 身份激活
+        let activateHtml = `
+          <div class="card">
+            <div class="card-title">身份激活</div>
+            <p class="text-light text-sm mb-16">输入邀请码激活面试官/管理员身份</p>
+            <div class="form-group">
+              <input type="text" id="invite-code" class="form-input" placeholder="请输入邀请码">
+            </div>
+            <button class="btn btn-outline-primary" id="activate-btn">激活身份</button>
+          </div>
+        `;
+
+        // 工作台入口
+        let workbenchHtml = '';
+        if (session.role === 'interviewer' || session.role === 'admin') {
+          workbenchHtml = `
+            <div class="card">
+              <div class="card-title">工作台</div>
+              <div class="link-row" onclick="location.hash='/admin/applications'">
+                <div class="link-row-left">
+                  <div class="link-row-icon" style="background:var(--primary-bg);color:var(--primary)">👥</div>
+                  <div><div class="link-row-title">报名管理</div><div class="link-row-desc">审核报名申请</div></div>
+                </div>
+                <span class="link-row-arrow">›</span>
+              </div>
+          `;
+          if (session.role === 'admin') {
+            workbenchHtml += `
+              <div class="link-row" onclick="location.hash='/admin/sessions'">
+                <div class="link-row-left">
+                  <div class="link-row-icon" style="background:var(--success-bg);color:var(--success)">🕐</div>
+                  <div><div class="link-row-title">时间段管理</div><div class="link-row-desc">创建和管理面试时间段</div></div>
+                </div>
+                <span class="link-row-arrow">›</span>
+              </div>
+              <div class="link-row" onclick="location.hash='/admin/results'">
+                <div class="link-row-left">
+                  <div class="link-row-icon" style="background:var(--warning-bg);color:var(--warning)">📧</div>
+                  <div><div class="link-row-title">结果通知</div><div class="link-row-desc">发送面试结果邮件</div></div>
+                </div>
+                <span class="link-row-arrow">›</span>
+              </div>
+              <div class="link-row" onclick="location.hash='/admin/formConfig'">
+                <div class="link-row-left">
+                  <div class="link-row-icon" style="background:var(--info-bg);color:var(--info)">⚙️</div>
+                  <div><div class="link-row-title">表单配置</div><div class="link-row-desc">配置报名表单字段</div></div>
+                </div>
+                <span class="link-row-arrow">›</span>
+              </div>
+              <div class="link-row" onclick="location.hash='/admin/statistics'">
+                <div class="link-row-left">
+                  <div class="link-row-icon" style="background:#fce7f3;color:#db2777">📊</div>
+                  <div><div class="link-row-title">数据统计</div><div class="link-row-desc">查看招新数据</div></div>
+                </div>
+                <span class="link-row-arrow">›</span>
+              </div>
+            `;
+          }
+          workbenchHtml += `</div>`;
+        }
+
+        // 邀请码管理（管理员）
+        let inviteMgmtHtml = '';
+        if (session.role === 'admin') {
+          inviteMgmtHtml = `
+            <div class="card">
+              <div class="card-title">邀请码管理</div>
+              <div class="form-group">
+                <label class="form-label">面试官邀请码</label>
+                <input type="text" id="mgmt-interviewer-code" class="form-input" placeholder="设置面试官邀请码">
+              </div>
+              <div class="form-group">
+                <label class="form-label">管理员邀请码</label>
+                <input type="text" id="mgmt-admin-code" class="form-input" placeholder="设置管理员邀请码">
+              </div>
+              <button class="btn btn-secondary" id="save-invite-codes">保存邀请码</button>
+            </div>
+          `;
+        }
+
+        setContent(`
+          <div class="page-no-pad">
+            <div class="my-header">
+              <div class="my-avatar">${escapeHtml(session.account.charAt(0).toUpperCase())}</div>
+              <div>
+                <div class="my-name">${escapeHtml(session.account)}</div>
+                <div class="my-role">${{ applicant: '报名者', interviewer: '面试官', admin: '管理员' }[session.role]}</div>
+              </div>
+            </div>
+          </div>
+          <div class="page">
+            ${progressSteps}
+            ${appCardHtml}
+            ${bookingEntry}
+            ${activateHtml}
+            ${workbenchHtml}
+            ${inviteMgmtHtml}
+            <button class="btn btn-outline" id="logout-btn" style="color:var(--danger);border-color:var(--danger-bg)">退出登录</button>
+          </div>
+        `, { tabBar: true });
+
+        // 加载邀请码到管理输入框
+        if (session.role === 'admin') {
+          loadInviteCodes();
+          document.getElementById('save-invite-codes').addEventListener('click', handleSaveInviteCodes);
+        }
+
+        // 事件绑定
+        document.getElementById('activate-btn').addEventListener('click', handleActivateIdentity);
+        document.getElementById('logout-btn').addEventListener('click', () => {
+          if (confirm('确定退出登录吗？')) {
+            Session.clear();
+            location.hash = '/login';
+          }
+        });
+      } catch (e) {
+        console.error('加载我的页面失败', e);
+        setContent(`
+          <div class="page">
+            <div class="card text-center">
+              <p class="text-light">加载失败</p>
+              <button class="btn btn-primary mt-16" onclick="location.reload()">重试</button>
+            </div>
+          </div>
+        `, { tabBar: true });
+      }
+    }
+
+    async function loadInviteCodes() {
+      try {
+        const config = await getInviteCodeConfig();
+        if (config) {
+          if (config.interviewerCode) document.getElementById('mgmt-interviewer-code').value = config.interviewerCode;
+          if (config.adminCode) document.getElementById('mgmt-admin-code').value = config.adminCode;
+        }
+      } catch (e) {
+        console.warn('加载邀请码失败', e);
+      }
+    }
+
+    async function handleSaveInviteCodes() {
+      const interviewerCode = document.getElementById('mgmt-interviewer-code').value.trim();
+      const adminCode = document.getElementById('mgmt-admin-code').value.trim();
+
+      try {
+        const existing = await getInviteCodeConfig();
+        if (existing) {
+          await CloudDB.collection('config').doc(existing._id).update({
+            data: { interviewerCode, adminCode, updatedAt: serverDate() }
+          });
+        } else {
+          await CloudDB.collection('config').add({
+            data: { type: 'invite_code', interviewerCode, adminCode, createdAt: serverDate() }
+          });
+        }
+        toast('邀请码保存成功');
+      } catch (e) {
+        console.error('保存邀请码失败', e);
+        toast('保存失败：' + (e.message || '网络错误'));
+      }
+    }
+
+    async function handleActivateIdentity() {
+      const code = document.getElementById('invite-code').value.trim();
+      if (!code) {
+        toast('请输入邀请码');
+        return;
+      }
+
+      try {
+        const config = await getInviteCodeConfig();
+        if (!config) {
+          toast('邀请码系统未初始化');
+          return;
+        }
+
+        let newRole = null;
+        if (config.adminCode && code === config.adminCode) {
+          newRole = 'admin';
+        } else if (config.interviewerCode && code === config.interviewerCode) {
+          newRole = 'interviewer';
+        }
+
+        if (!newRole) {
+          toast('邀请码无效');
+          return;
+        }
+
+        // 更新用户角色
+        const session = Session.get();
+        await CloudDB.collection('users').where({ account: session.account }).update({
+          data: { role: newRole, updatedAt: serverDate() }
+        });
+
+        // 更新 session
+        Session.set({ ...session, role: newRole });
+        toast(`已激活${newRole === 'admin' ? '管理员' : '面试官'}身份`);
+        setTimeout(() => { location.hash = '/my'; location.reload(); }, 800);
+      } catch (e) {
+        console.error('激活身份失败', e);
+        toast('激活失败：' + (e.message || '网络错误'));
+      }
+    }
+
+    // ================================================================
+    // ===== 页面6: 面试预约 =====
+    // ================================================================
+    async function renderBooking() {
+      const session = requireAuth();
+      if (!session) return;
+
+      setLoading('加载预约信息...');
+      try {
+        const application = await findUserApplication(session.account);
+        if (!application) {
+          setContent(`
+            <div class="page">
+              <div class="card text-center">
+                <p class="text-light mb-16">您尚未提交报名</p>
+                <button class="btn btn-primary" onclick="location.hash='/apply'">去报名</button>
+              </div>
+            </div>
+          `, { tabBar: false, back: true, title: '面试预约' });
+          return;
+        }
+
+        if (application.reviewStatus !== 'passed') {
+          setContent(`
+            <div class="page">
+              <div class="card text-center">
+                <div style="font-size:40px;margin-bottom:8px;opacity:0.3">🔒</div>
+                <p class="text-light mb-16">审核通过后才能预约面试</p>
+                <div class="info-row">
+                  <span class="info-label">当前状态</span>
+                  <span class="badge ${reviewStatusBadge(application.reviewStatus)}">${reviewStatusText(application.reviewStatus)}</span>
+                </div>
+              </div>
+            </div>
+          `, { tabBar: false, back: true, title: '面试预约' });
+          return;
+        }
+
+        // 查找已有预约
+        const existingBooking = await CloudDB.collection('interview_bookings').where({
+          applicationId: application._id,
+          status: 'booked'
+        }).getOne();
+
+        if (existingBooking) {
+          // 已预约 - 显示预约信息和取消按钮
+          const slot = await CloudDB.collection('interview_slots').doc(existingBooking.slotId).getOne();
+          const sessionData = slot ? await CloudDB.collection('interview_sessions').doc(slot.sessionId).getOne() : null;
+
+          setContent(`
+            <div class="page">
+              <div class="card text-center">
+                <div style="font-size:48px;margin-bottom:12px">✅</div>
+                <h3 style="margin-bottom:16px">已预约面试</h3>
+                <div class="info-row">
+                  <span class="info-label">场次</span>
+                  <span class="info-value">${escapeHtml(sessionData ? sessionData.title : '-')}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">日期</span>
+                  <span class="info-value">${escapeHtml(slot ? slot.date : '-')}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">时间</span>
+                  <span class="info-value">${escapeHtml(slot ? slot.startTime + ' - ' + slot.endTime : '-')}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">地点</span>
+                  <span class="info-value">${escapeHtml(sessionData ? sessionData.location : '-')}</span>
+                </div>
+              </div>
+              <button class="btn btn-danger" id="cancel-booking-btn">取消预约</button>
+            </div>
+          `, { tabBar: false, back: true, title: '面试预约' });
+
+          document.getElementById('cancel-booking-btn').addEventListener('click', () => handleCancelBooking(existingBooking, slot, application));
+          return;
+        }
+
+        // 未预约 - 显示可预约的场次和时间段
+        const sessions = await CloudDB.collection('interview_sessions').where({ status: 'open' }).orderBy('date', 'asc').get();
+
+        if (sessions.length === 0) {
+          setContent(`
+            <div class="page">
+              <div class="card text-center">
+                <div style="font-size:40px;margin-bottom:8px;opacity:0.3">📭</div>
+                <p class="text-light">暂无开放的面试场次</p>
+                <p class="text-light text-sm mt-16">请耐心等待管理员开放面试时间段</p>
+              </div>
+            </div>
+          `, { tabBar: false, back: true, title: '面试预约' });
+          return;
+        }
+
+        // 加载每个场次的可用时间段
+        const sessionsHtml = await Promise.all(sessions.map(async s => {
+          const slots = await CloudDB.collection('interview_slots').where({
+            sessionId: s._id,
+            status: cmd.in(['open', 'full'])
+          }).orderBy('startTime', 'asc').get();
+
+          const slotsHtml = slots.map(slot => {
+            const isFull = slot.status === 'full' || slot.bookedCount >= slot.capacity;
+            return `
+              <div class="slot-item ${isFull ? 'full' : 'available'}" data-slot-id="${slot._id}" data-session-id="${s._id}">
+                <div>
+                  <div class="slot-time">${escapeHtml(slot.startTime)} - ${escapeHtml(slot.endTime)}</div>
+                  <div class="slot-cap">${slot.bookedCount}/${slot.capacity}人</div>
+                </div>
+                <span class="badge ${isFull ? 'badge-gray' : 'badge-primary'}">${isFull ? '已满' : '可预约'}</span>
+              </div>
+            `;
+          }).join('');
+
+          return `
+            <div class="card session-card">
+              <div class="card-title">${escapeHtml(s.title)}</div>
+              <div class="info-row">
+                <span class="info-label">日期</span>
+                <span class="info-value">${escapeHtml(s.date)}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">时间</span>
+                <span class="info-value">${escapeHtml(s.startTime)} - ${escapeHtml(s.endTime)}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">地点</span>
+                <span class="info-value">${escapeHtml(s.location)}</span>
+              </div>
+              <div class="slot-grid">
+                ${slotsHtml || '<p class="text-light text-sm text-center" style="padding:12px 0">暂无可用时间段</p>'}
+              </div>
+            </div>
+          `;
+        }));
+
+        setContent(`
+          <div class="page">
+            <p class="text-light text-sm mb-16">请选择合适的面试时间段</p>
+            ${sessionsHtml.join('')}
+          </div>
+        `, { tabBar: false, back: true, title: '面试预约' });
+
+        // 绑定预约点击事件
+        document.querySelectorAll('.slot-item.available').forEach(el => {
+          el.addEventListener('click', () => handleBookSlot(el.dataset.slotId, el.dataset.sessionId, application));
+        });
+      } catch (e) {
+        console.error('加载预约页失败', e);
+        setContent(`
+          <div class="page">
+            <div class="card text-center">
+              <p class="text-light">加载失败</p>
+              <button class="btn btn-primary mt-16" onclick="location.reload()">重试</button>
+            </div>
+          </div>
+        `, { tabBar: false, back: true, title: '面试预约' });
+      }
+    }
+
+    async function handleBookSlot(slotId, sessionId, application) {
+      if (!confirm('确定预约这个时间段吗？')) return;
+
+      try {
+        const slot = await CloudDB.collection('interview_slots').doc(slotId).getOne();
+        if (!slot) {
+          toast('时间段不存在');
+          return;
+        }
+        if (slot.bookedCount >= slot.capacity) {
+          toast('该时间段已满');
+          return;
+        }
+
+        // 创建预约记录
+        await CloudDB.collection('interview_bookings').add({
+          data: {
+            applicantOpenid: application._openid || '',
+            applicationId: application._id,
+            sessionId,
+            slotId,
+            status: 'booked',
+            createdAt: serverDate()
+          }
+        });
+
+        // 更新时间段
+        const newCount = slot.bookedCount + 1;
+        const updateData = {
+          data: {
+            bookedCount: cmd.inc(1),
+            status: newCount >= slot.capacity ? 'full' : 'open'
+          }
+        };
+        await CloudDB.collection('interview_slots').doc(slotId).update(updateData);
+
+        // 获取场次信息用于显示面试时间文本
+        const sessionData = await CloudDB.collection('interview_sessions').doc(sessionId).getOne();
+        const timeText = `${slot.date} ${slot.startTime}-${slot.endTime}${sessionData ? ' ' + sessionData.location : ''}`;
+
+        // 更新报名记录
+        await CloudDB.collection('applications').doc(application._id).update({
+          data: {
+            bookingStatus: 'booked',
+            interviewSlotId: slotId,
+            interviewTimeText: timeText,
+            updatedAt: serverDate()
+          }
+        });
+
+        toast('预约成功');
+        setTimeout(() => { location.reload(); }, 800);
+      } catch (e) {
+        console.error('预约失败', e);
+        toast('预约失败：' + (e.message || '网络错误'));
+      }
+    }
+
+    async function handleCancelBooking(booking, slot, application) {
+      if (!confirm('确定取消预约吗？取消后可能无法重新预约同一时间段。')) return;
+
+      try {
+        // 更新预约状态
+        await CloudDB.collection('interview_bookings').doc(booking._id).update({
+          data: { status: 'cancelled', updatedAt: serverDate() }
+        });
+
+        // 更新时间段
+        if (slot) {
+          await CloudDB.collection('interview_slots').doc(slot._id).update({
+            data: {
+              bookedCount: cmd.inc(-1),
+              status: 'open'
+            }
+          });
+        }
+
+        // 更新报名记录
+        await CloudDB.collection('applications').doc(application._id).update({
+          data: {
+            bookingStatus: 'not_booked',
+            interviewSlotId: '',
+            interviewTimeText: '',
+            updatedAt: serverDate()
+          }
+        });
+
+        toast('已取消预约');
+        setTimeout(() => { location.reload(); }, 800);
+      } catch (e) {
+        console.error('取消预约失败', e);
+        toast('取消失败：' + (e.message || '网络错误'));
+      }
+    }
+
+    // ================================================================
+    // ===== 页面7: 报名管理 =====
+    // ================================================================
+    async function renderAdminApplications() {
+      const session = requireRole(['interviewer', 'admin']);
+      if (!session) return;
+
+      setLoading('加载报名列表...');
+      renderAdminApplicationsContent('all');
+    }
+
+    async function renderAdminApplicationsContent(filter) {
+      try {
+        let query = CloudDB.collection('applications').orderBy('createdAt', 'desc').limit(100);
+        if (filter !== 'all') {
+          query = query.where({ reviewStatus: filter });
+        }
+        const applications = await query.get();
+
+        if (applications.length === 0) {
+          setContent(`
+            <div class="page">
+              <div class="admin-tabs">
+                <span class="admin-tab ${filter === 'all' ? 'active' : ''}" data-filter="all">全部</span>
+                <span class="admin-tab ${filter === 'pending' ? 'active' : ''}" data-filter="pending">待审核</span>
+                <span class="admin-tab ${filter === 'passed' ? 'active' : ''}" data-filter="passed">已通过</span>
+                <span class="admin-tab ${filter === 'rejected' ? 'active' : ''}" data-filter="rejected">已拒绝</span>
+              </div>
+              <div class="empty-state">
+                <div class="empty-state-icon">📭</div>
+                <p>暂无报名记录</p>
+              </div>
+            </div>
+          `, { back: true, title: '报名管理' });
+        } else {
+          const listHtml = applications.map(a => `
+            <div class="app-card" data-id="${a._id}">
+              <div class="app-card-header">
+                <div>
+                  <div class="app-card-name">${escapeHtml(a.name || '未知')}</div>
+                  <div class="app-card-meta">${escapeHtml(a.college || '')} · ${escapeHtml(a.grade || '')}</div>
+                </div>
+                <span class="badge ${reviewStatusBadge(a.reviewStatus)}">${reviewStatusText(a.reviewStatus)}</span>
+              </div>
+              <div class="app-card-info">
+                <span>📱 ${escapeHtml(a.phone || '-')}</span>
+                <span>🎯 ${escapeHtml(a.firstGroup || '-')}</span>
+                ${a.interviewResult !== 'not_started' ? `<span>📊 ${interviewResultText(a.interviewResult)}</span>` : ''}
+              </div>
+            </div>
+          `).join('');
+
+          setContent(`
+            <div class="page">
+              <div class="admin-tabs">
+                <span class="admin-tab ${filter === 'all' ? 'active' : ''}" data-filter="all">全部(${applications.length})</span>
+                <span class="admin-tab ${filter === 'pending' ? 'active' : ''}" data-filter="pending">待审核</span>
+                <span class="admin-tab ${filter === 'passed' ? 'active' : ''}" data-filter="passed">已通过</span>
+                <span class="admin-tab ${filter === 'rejected' ? 'active' : ''}" data-filter="rejected">已拒绝</span>
+              </div>
+              <button class="btn btn-secondary btn-sm mb-16" id="export-csv-btn" style="width:auto;margin-left:auto;display:flex">
+                📥 导出CSV
+              </button>
+              ${listHtml}
+            </div>
+          `, { back: true, title: '报名管理' });
+        }
+
+        // 绑定筛选事件
+        document.querySelectorAll('.admin-tab').forEach(tab => {
+          tab.addEventListener('click', () => renderAdminApplicationsContent(tab.dataset.filter));
+        });
+
+        // 绑定卡片点击事件
+        document.querySelectorAll('.app-card[data-id]').forEach(card => {
+          card.addEventListener('click', () => showApplicationDetail(card.dataset.id));
+        });
+
+        // 导出CSV
+        const exportBtn = document.getElementById('export-csv-btn');
+        if (exportBtn) {
+          exportBtn.addEventListener('click', () => exportApplicationsCSV(applications));
+        }
+      } catch (e) {
+        console.error('加载报名列表失败', e);
+        setContent(`
+          <div class="page">
+            <div class="card text-center">
+              <p class="text-light">加载失败</p>
+              <button class="btn btn-primary mt-16" onclick="location.reload()">重试</button>
+            </div>
+          </div>
+        `, { back: true, title: '报名管理' });
+      }
+    }
+
+    async function showApplicationDetail(id) {
+      try {
+        const a = await CloudDB.collection('applications').doc(id).getOne();
+        if (!a) {
+          toast('记录不存在');
+          return;
+        }
+
+        const fields = await getFormConfig();
+        const fieldRows = fields.map(f => {
+          const val = a[f.key];
+          if (!val) return '';
+          return `<div class="info-row"><span class="info-label">${escapeHtml(f.label)}</span><span class="info-value">${escapeHtml(val)}</span></div>`;
+        }).join('');
+
+        const session = Session.get();
+        const canReview = session.role === 'interviewer' || session.role === 'admin';
+        const canDelete = session.role === 'admin';
+
+        showModal(`
+          <div class="modal-header">
+            <span class="modal-title">${escapeHtml(a.name || '详情')}</span>
+            <span class="modal-close" onclick="closeModal()">×</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">审核状态</span>
+            <span class="badge ${reviewStatusBadge(a.reviewStatus)}">${reviewStatusText(a.reviewStatus)}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">面试结果</span>
+            <span class="badge ${interviewResultBadge(a.interviewResult)}">${interviewResultText(a.interviewResult)}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">面试时间</span>
+            <span class="info-value">${escapeHtml(a.interviewTimeText || '未预约')}</span>
+          </div>
+          ${fieldRows}
+          <div class="info-row">
+            <span class="info-label">提交时间</span>
+            <span class="info-value">${formatDateShort(a.createdAt)}</span>
+          </div>
+          ${canReview ? `
+            <div class="flex gap-8 mt-16">
+              ${a.reviewStatus !== 'passed' ? `<button class="btn btn-success btn-sm" onclick="reviewApplication('${id}','passed')">通过</button>` : ''}
+              ${a.reviewStatus !== 'rejected' ? `<button class="btn btn-warning btn-sm" onclick="reviewApplication('${id}','rejected')">拒绝</button>` : ''}
+              <button class="btn btn-primary btn-sm" onclick="location.hash='/admin/review?id=${id}';closeModal()">面试评价</button>
+            </div>
+          ` : ''}
+          ${canDelete ? `
+            <button class="btn btn-danger btn-sm mt-16" onclick="deleteApplication('${id}')">删除记录</button>
+          ` : ''}
+        `);
+      } catch (e) {
+        console.error('查看详情失败', e);
+        toast('加载详情失败');
+      }
+    }
+
+    async function reviewApplication(id, status) {
+      try {
+        await CloudDB.collection('applications').doc(id).update({
+          data: {
+            reviewStatus: status,
+            bookingStatus: status === 'passed' ? 'not_booked' : 'not_open',
+            updatedAt: serverDate()
+          }
+        });
+        toast(status === 'passed' ? '已通过审核' : '已拒绝审核');
+        closeModal();
+        const { path } = parseHash();
+        if (path === '/admin/applications') {
+          renderAdminApplicationsContent('all');
+        }
+      } catch (e) {
+        console.error('审核失败', e);
+        toast('操作失败');
+      }
+    }
+
+    async function deleteApplication(id) {
+      if (!confirm('确定删除该报名记录吗？此操作不可撤销。')) return;
+      try {
+        await CloudDB.collection('applications').doc(id).remove();
+        toast('已删除');
+        closeModal();
+        renderAdminApplicationsContent('all');
+      } catch (e) {
+        console.error('删除失败', e);
+        toast('删除失败');
+      }
+    }
+
+    function exportApplicationsCSV(applications) {
+      const headers = ['姓名', '性别', '学院专业', '年级', '手机号', '邮箱', '第一志愿', '第二志愿', '审核状态', '面试结果', '面试时间', '提交时间'];
+      const rows = applications.map(a => [
+        a.name || '', a.gender || '', a.college || '', a.grade || '',
+        a.phone || '', a.email || '', a.firstGroup || '', a.secondGroup || '',
+        reviewStatusText(a.reviewStatus), interviewResultText(a.interviewResult),
+        a.interviewTimeText || '', formatDateShort(a.createdAt)
+      ]);
+      const csv = [headers, ...rows].map(r =>
+        r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')
+      ).join('\n');
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `PFA报名数据_${new Date().toLocaleDateString('zh-CN')}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast('CSV已导出');
+    }
+
+    // ================================================================
+    // ===== 页面8: 时间段管理 =====
+    // ================================================================
+    async function renderAdminSessions() {
+      const session = requireRole(['admin']);
+      if (!session) return;
+
+      setLoading('加载面试场次...');
+      try {
+        const sessions = await CloudDB.collection('interview_sessions').orderBy('date', 'desc').limit(50).get();
+
+        const sessionsHtml = await Promise.all(sessions.map(async s => {
+          const slots = await CloudDB.collection('interview_slots').where({ sessionId: s._id }).orderBy('startTime', 'asc').get();
+          const totalBooked = slots.reduce((sum, sl) => sum + (sl.bookedCount || 0), 0);
+          const totalCap = slots.reduce((sum, sl) => sum + (sl.capacity || 6), 0);
+
+          const slotsHtml = slots.map(slot => `
+            <div class="slot-item ${slot.status === 'full' ? 'full' : ''}">
+              <div>
+                <div class="slot-time">${escapeHtml(slot.startTime)} - ${escapeHtml(slot.endTime)}</div>
+                <div class="slot-cap">${slot.bookedCount || 0}/${slot.capacity || 6}人 · ${slot.status}</div>
+              </div>
+              <span class="badge ${slot.status === 'full' ? 'badge-gray' : slot.status === 'open' ? 'badge-passed' : 'badge-pending'}">${slot.status || 'draft'}</span>
+            </div>
+          `).join('');
+
+          return `
+            <div class="card session-card">
+              <div class="card-title">
+                <span>${escapeHtml(s.title)}</span>
+                <span class="badge ${s.status === 'open' ? 'badge-passed' : s.status === 'closed' ? 'badge-gray' : 'badge-pending'}">${{ draft: '草稿', open: '开放', closed: '关闭' }[s.status] || s.status}</span>
+              </div>
+              <div class="info-row"><span class="info-label">日期</span><span class="info-value">${escapeHtml(s.date)}</span></div>
+              <div class="info-row"><span class="info-label">时间</span><span class="info-value">${escapeHtml(s.startTime)} - ${escapeHtml(s.endTime)}</span></div>
+              <div class="info-row"><span class="info-label">地点</span><span class="info-value">${escapeHtml(s.location)}</span></div>
+              <div class="info-row"><span class="info-label">预约</span><span class="info-value">${totalBooked}/${totalCap}人</span></div>
+              <div class="flex gap-8 mt-16">
+                ${s.status === 'draft' ? `<button class="btn btn-success btn-sm" onclick="openSession('${s._id}')">开放</button>` : ''}
+                ${s.status === 'open' ? `<button class="btn btn-warning btn-sm" onclick="closeSession('${s._id}')">关闭</button>` : ''}
+                <button class="btn btn-danger btn-sm" onclick="deleteSession('${s._id}')">删除</button>
+              </div>
+              ${slots.length > 0 ? `<div class="divider"></div><div class="slot-grid">${slotsHtml}</div>` : '<p class="text-light text-sm mt-16">无时间段</p>'}
+            </div>
+          `;
+        }));
+
+        setContent(`
+          <div class="page">
+            <div class="card">
+              <div class="card-title">创建面试场次</div>
+              <div class="form-group">
+                <label class="form-label">场次标题<span class="req">*</span></label>
+                <input type="text" id="session-title" class="form-input" placeholder="例如：第一批面试">
+              </div>
+              <div class="form-group">
+                <label class="form-label">日期<span class="req">*</span></label>
+                <input type="date" id="session-date" class="form-input">
+              </div>
+              <div class="form-group">
+                <label class="form-label">开始时间<span class="req">*</span></label>
+                <input type="time" id="session-start" class="form-input" value="09:00">
+              </div>
+              <div class="form-group">
+                <label class="form-label">结束时间<span class="req">*</span></label>
+                <input type="time" id="session-end" class="form-input" value="18:00">
+              </div>
+              <div class="form-group">
+                <label class="form-label">地点<span class="req">*</span></label>
+                <input type="text" id="session-location" class="form-input" placeholder="面试地点">
+              </div>
+              <button class="btn btn-primary" id="create-session-btn">创建场次</button>
+            </div>
+            <div class="section-title">已有场次</div>
+            ${sessionsHtml.join('') || '<div class="empty-state"><div class="empty-state-icon">📭</div><p>暂无面试场次</p></div>'}
+          </div>
+        `, { back: true, title: '时间段管理' });
+
+        document.getElementById('create-session-btn').addEventListener('click', handleCreateSession);
+      } catch (e) {
+        console.error('加载场次失败', e);
+        setContent(`
+          <div class="page">
+            <div class="card text-center">
+              <p class="text-light">加载失败</p>
+              <button class="btn btn-primary mt-16" onclick="location.reload()">重试</button>
+            </div>
+          </div>
+        `, { back: true, title: '时间段管理' });
+      }
+    }
+
+    function generateSlots(date, startTime, endTime, sessionId) {
+      const slots = [];
+      const [sh, sm] = startTime.split(':').map(Number);
+      const [eh, em] = endTime.split(':').map(Number);
+      let start = sh * 60 + sm;
+      const end = eh * 60 + em;
+      const duration = 50;
+      const gap = 10;
+
+      while (start + duration <= end) {
+        const sH = Math.floor(start / 60);
+        const sM = start % 60;
+        const eMin = start + duration;
+        const eH = Math.floor(eMin / 60);
+        const eM = eMin % 60;
+        slots.push({
+          sessionId,
+          date,
+          startTime: `${String(sH).padStart(2, '0')}:${String(sM).padStart(2, '0')}`,
+          endTime: `${String(eH).padStart(2, '0')}:${String(eM).padStart(2, '0')}`,
+          capacity: 6,
+          bookedCount: 0,
+          status: 'draft'
+        });
+        start += duration + gap;
+      }
+      return slots;
+    }
+
+    async function handleCreateSession() {
+      const title = document.getElementById('session-title').value.trim();
+      const date = document.getElementById('session-date').value;
+      const startTime = document.getElementById('session-start').value;
+      const endTime = document.getElementById('session-end').value;
+      const location = document.getElementById('session-location').value.trim();
+
+      if (!title || !date || !startTime || !endTime || !location) {
+        toast('请填写所有必填项');
+        return;
+      }
+
+      const btn = document.getElementById('create-session-btn');
+      btn.disabled = true;
+      btn.textContent = '创建中...';
+
+      try {
+        // 创建场次
+        const sessionId = await CloudDB.collection('interview_sessions').add({
+          data: {
+            title, date, startTime, endTime, location,
+            status: 'draft',
+            createdAt: serverDate()
+          }
+        });
+
+        // 生成时间段
+        const slots = generateSlots(date, startTime, endTime, sessionId);
+        for (const slot of slots) {
+          await CloudDB.collection('interview_slots').add({ data: slot });
+        }
+
+        toast(`场次创建成功，生成了${slots.length}个时间段`);
+        setTimeout(() => { renderAdminSessions(); }, 800);
+      } catch (e) {
+        console.error('创建场次失败', e);
+        toast('创建失败：' + (e.message || '网络错误'));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '创建场次';
+      }
+    }
+
+    async function openSession(id) {
+      try {
+        await CloudDB.collection('interview_sessions').doc(id).update({
+          data: { status: 'open' }
+        });
+        // 同时开放所有 draft 时间段
+        await CloudDB.collection('interview_slots').where({
+          sessionId: id,
+          status: 'draft'
+        }).update({
+          data: { status: 'open' }
+        });
+        toast('已开放场次');
+        renderAdminSessions();
+      } catch (e) {
+        console.error('开放场次失败', e);
+        toast('操作失败');
+      }
+    }
+
+    async function closeSession(id) {
+      try {
+        await CloudDB.collection('interview_sessions').doc(id).update({
+          data: { status: 'closed' }
+        });
+        await CloudDB.collection('interview_slots').where({
+          sessionId: id,
+          status: cmd.in(['open', 'draft'])
+        }).update({
+          data: { status: 'closed' }
+        });
+        toast('已关闭场次');
+        renderAdminSessions();
+      } catch (e) {
+        console.error('关闭场次失败', e);
+        toast('操作失败');
+      }
+    }
+
+    async function deleteSession(id) {
+      if (!confirm('确定删除该场次及其所有时间段吗？')) return;
+      try {
+        await CloudDB.collection('interview_sessions').doc(id).remove();
+        await CloudDB.collection('interview_slots').where({ sessionId: id }).remove();
+        toast('已删除');
+        renderAdminSessions();
+      } catch (e) {
+        console.error('删除场次失败', e);
+        toast('删除失败');
+      }
+    }
+
+    // ================================================================
+    // ===== 页面9: 面试评价 =====
+    // ================================================================
+    async function renderAdminReview(appId) {
+      const session = requireRole(['interviewer', 'admin']);
+      if (!session) return;
+
+      if (!appId) {
+        setContent(`
+          <div class="page">
+            <div class="card text-center">
+              <p class="text-light">缺少申请人ID</p>
+              <button class="btn btn-secondary mt-16" onclick="location.hash='/admin/applications'">返回列表</button>
+            </div>
+          </div>
+        `, { back: true, title: '面试评价' });
+        return;
+      }
+
+      setLoading('加载申请人信息...');
+      try {
+        const a = await CloudDB.collection('applications').doc(appId).getOne();
+        if (!a) {
+          setContent(`
+            <div class="page">
+              <div class="card text-center">
+                <p class="text-light">申请人不存在</p>
+                <button class="btn btn-secondary mt-16" onclick="location.hash='/admin/applications'">返回列表</button>
+              </div>
+            </div>
+          `, { back: true, title: '面试评价' });
+          return;
+        }
+
+        // 查找已有评价
+        const existingReview = await CloudDB.collection('reviews').where({ applicationId: appId }).getOne();
+
+        const reviewData = existingReview || {
+          scores: { learning: 0, communication: 0, teamwork: 0 },
+          comment: '',
+          result: ''
+        };
+
+        const fields = await getFormConfig();
+        const fieldRows = fields.map(f => {
+          const val = a[f.key];
+          if (!val) return '';
+          return `<div class="info-row"><span class="info-label">${escapeHtml(f.label)}</span><span class="info-value">${escapeHtml(val)}</span></div>`;
+        }).join('');
+
+        function starHtml(field, value) {
+          return `
+            <div class="star-rating" data-field="${field}">
+              ${[1,2,3,4,5].map(v => `<span class="star ${v <= value ? 'active' : ''}" data-value="${v}">★</span>`).join('')}
+            </div>
+          `;
+        }
+
+        setContent(`
+          <div class="page">
+            <div class="card">
+              <div class="card-title">申请人信息</div>
+              <div class="info-row"><span class="info-label">姓名</span><span class="info-value">${escapeHtml(a.name || '-')}</span></div>
+              ${fieldRows}
+              <div class="info-row"><span class="info-label">面试时间</span><span class="info-value">${escapeHtml(a.interviewTimeText || '未预约')}</span></div>
+            </div>
+
+            <div class="card">
+              <div class="card-title">面试评分 ${existingReview ? '<span class="badge badge-info">已有评价</span>' : ''}</div>
+              <div class="form-group">
+                <label class="form-label">学习能力</label>
+                ${starHtml('learning', reviewData.scores?.learning || 0)}
+              </div>
+              <div class="form-group">
+                <label class="form-label">沟通能力</label>
+                ${starHtml('communication', reviewData.scores?.communication || 0)}
+              </div>
+              <div class="form-group">
+                <label class="form-label">团队协作</label>
+                ${starHtml('teamwork', reviewData.scores?.teamwork || 0)}
+              </div>
+              <div class="form-group">
+                <label class="form-label">评价内容</label>
+                <textarea class="form-textarea" id="review-comment" placeholder="请输入面试评价">${escapeHtml(reviewData.comment || '')}</textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label">面试结果</label>
+                <select class="form-select" id="review-result">
+                  <option value="">请选择</option>
+                  <option value="passed" ${reviewData.result === 'passed' ? 'selected' : ''}>通过</option>
+                  <option value="failed" ${reviewData.result === 'failed' ? 'selected' : ''}>未通过</option>
+                  <option value="waitlist" ${reviewData.result === 'waitlist' ? 'selected' : ''}>候补</option>
+                  <option value="training" ${reviewData.result === 'training' ? 'selected' : ''}>进入试训</option>
+                </select>
+              </div>
+              <button class="btn btn-primary" id="submit-review-btn">${existingReview ? '更新评价' : '提交评价'}</button>
+            </div>
+          </div>
+        `, { back: true, title: '面试评价' });
+
+        // 星级评分事件
+        document.querySelectorAll('.star-rating').forEach(rating => {
+          const field = rating.dataset.field;
+          rating.querySelectorAll('.star').forEach(star => {
+            star.addEventListener('click', () => {
+              const value = parseInt(star.dataset.value);
+              rating.querySelectorAll('.star').forEach((s, i) => {
+                s.classList.toggle('active', i < value);
+              });
+              rating.dataset.value = value;
+            });
+          });
+          if (reviewData.scores && reviewData.scores[field]) {
+            rating.dataset.value = reviewData.scores[field];
+          }
+        });
+
+        document.getElementById('submit-review-btn').addEventListener('click', () => handleSubmitReview(appId, a, session, existingReview));
+      } catch (e) {
+        console.error('加载评价页失败', e);
+        setContent(`
+          <div class="page">
+            <div class="card text-center">
+              <p class="text-light">加载失败</p>
+              <button class="btn btn-primary mt-16" onclick="location.reload()">重试</button>
+            </div>
+          </div>
+        `, { back: true, title: '面试评价' });
+      }
+    }
+
+    async function handleSubmitReview(appId, application, session, existingReview) {
+      const scores = {};
+      document.querySelectorAll('.star-rating').forEach(rating => {
+        scores[rating.dataset.field] = parseInt(rating.dataset.value || 0);
+      });
+      const comment = document.getElementById('review-comment').value.trim();
+      const result = document.getElementById('review-result').value;
+
+      if (!result) {
+        toast('请选择面试结果');
+        return;
+      }
+      if (scores.learning === 0 || scores.communication === 0 || scores.teamwork === 0) {
+        toast('请完成所有评分');
+        return;
+      }
+
+      const btn = document.getElementById('submit-review-btn');
+      btn.disabled = true;
+      btn.textContent = '提交中...';
+
+      try {
+        if (existingReview) {
+          // 更新已有评价
+          await CloudDB.collection('reviews').doc(existingReview._id).update({
+            data: {
+              scores,
+              comment,
+              result,
+              interviewerId: session.account,
+              updatedAt: serverDate()
+            }
+          });
+        } else {
+          // 创建新评价
+          await CloudDB.collection('reviews').add({
+            data: {
+              applicationId: appId,
+              applicantName: application.name || '',
+              scores,
+              comment,
+              result,
+              interviewerId: session.account,
+              createdAt: serverDate()
+            }
+          });
+        }
+
+        // 更新报名记录的面试结果
+        await CloudDB.collection('applications').doc(appId).update({
+          data: {
+            interviewResult: result,
+            updatedAt: serverDate()
+          }
+        });
+
+        toast('评价提交成功');
+        setTimeout(() => { location.hash = '/admin/applications'; }, 800);
+      } catch (e) {
+        console.error('提交评价失败', e);
+        toast('提交失败：' + (e.message || '网络错误'));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = existingReview ? '更新评价' : '提交评价';
+      }
+    }
+
+    // ================================================================
+    // ===== 页面10: 结果通知 =====
+    // ================================================================
+    async function renderAdminResults() {
+      const session = requireRole(['admin']);
+      if (!session) return;
+
+      setLoading('加载面试结果...');
+      try {
+        const applications = await CloudDB.collection('applications').where({
+          interviewResult: cmd.neq('not_started')
+        }).orderBy('updatedAt', 'desc').limit(100).get();
+
+        // 获取已发送邮件列表
+        const emailLogs = await CloudDB.collection('email_log').orderBy('sentAt', 'desc').limit(200).get();
+        const sentIds = new Set(emailLogs.map(e => e.applicationId));
+
+        renderResultsContent(applications, sentIds, 'all');
+      } catch (e) {
+        console.error('加载结果通知失败', e);
+        setContent(`
+          <div class="page">
+            <div class="card text-center">
+              <p class="text-light">加载失败</p>
+              <button class="btn btn-primary mt-16" onclick="location.reload()">重试</button>
+            </div>
+          </div>
+        `, { back: true, title: '结果通知' });
+      }
+    }
+
+    function renderResultsContent(applications, sentIds, filter, searchKey = '') {
+      let filtered = applications;
+      if (filter !== 'all') {
+        filtered = filtered.filter(a => a.interviewResult === filter);
+      }
+      if (searchKey) {
+        const key = searchKey.toLowerCase();
+        filtered = filtered.filter(a =>
+          (a.name || '').toLowerCase().includes(key) ||
+          (a.email || '').toLowerCase().includes(key) ||
+          (a.account || '').toLowerCase().includes(key)
+        );
+      }
+
+      const listHtml = filtered.map(a => {
+        const sent = sentIds.has(a._id);
+        const template = EMAIL_TEMPLATES[a.interviewResult] || EMAIL_TEMPLATES.passed;
+        return `
+          <div class="app-card" data-id="${a._id}">
+            <div class="app-card-header">
+              <div>
+                <div class="app-card-name">${escapeHtml(a.name || '未知')}</div>
+                <div class="app-card-meta">${escapeHtml(a.email || '无邮箱')}</div>
+              </div>
+              <div class="flex center gap-8">
+                <span class="badge ${interviewResultBadge(a.interviewResult)}">${interviewResultText(a.interviewResult)}</span>
+                ${sent ? '<span class="badge badge-gray">已发送</span>' : '<span class="badge badge-pending">未发送</span>'}
+              </div>
+            </div>
+            <div class="app-card-info">
+              <span>🎯 ${escapeHtml(a.firstGroup || '-')}</span>
+              <span>📧 ${escapeHtml(a.email || '-')}</span>
+            </div>
+            <button class="btn btn-primary btn-sm mt-16" onclick="sendResultEmail('${a._id}', '${escapeHtml(a.email || '')}', '${a.interviewResult}')">
+              ${sent ? '重新发送' : '发送邮件'}
+            </button>
+          </div>
+        `;
+      }).join('');
+
+      setContent(`
+        <div class="page">
+          <div class="admin-tabs">
+            <span class="admin-tab ${filter === 'all' ? 'active' : ''}" data-filter="all">全部</span>
+            <span class="admin-tab ${filter === 'passed' ? 'active' : ''}" data-filter="passed">通过</span>
+            <span class="admin-tab ${filter === 'failed' ? 'active' : ''}" data-filter="failed">未通过</span>
+            <span class="admin-tab ${filter === 'waitlist' ? 'active' : ''}" data-filter="waitlist">候补</span>
+            <span class="admin-tab ${filter === 'training' ? 'active' : ''}" data-filter="training">试训</span>
+          </div>
+          <div class="search-bar">
+            <input type="text" class="search-input" id="result-search" placeholder="搜索姓名/邮箱" value="${escapeHtml(searchKey)}">
+          </div>
+          ${listHtml || '<div class="empty-state"><div class="empty-state-icon">📭</div><p>暂无数据</p></div>'}
+        </div>
+      `, { back: true, title: '结果通知' });
+
+      document.querySelectorAll('.admin-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          const sentArr = Array.from(sentIds);
+          renderResultsContent(applications, new Set(sentArr), tab.dataset.filter, document.getElementById('result-search').value);
+        });
+      });
+
+      const searchInput = document.getElementById('result-search');
+      let searchTimer = null;
+      searchInput.addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => {
+          const sentArr = Array.from(sentIds);
+          renderResultsContent(applications, new Set(sentArr), filter, searchInput.value);
+        }, 300);
+      });
+    }
+
+    async function sendResultEmail(appId, email, resultType) {
+      if (!email) {
+        toast('该申请人无邮箱地址');
+        return;
+      }
+
+      const template = EMAIL_TEMPLATES[resultType] || EMAIL_TEMPLATES.passed;
+
+      showModal(`
+        <div class="modal-header">
+          <span class="modal-title">发送面试结果邮件</span>
+          <span class="modal-close" onclick="closeModal()">×</span>
+        </div>
+        <div class="info-row"><span class="info-label">收件人</span><span class="info-value">${escapeHtml(email)}</span></div>
+        <div class="info-row"><span class="info-label">结果</span><span class="info-value">${interviewResultText(resultType)}</span></div>
+        <div class="form-group mt-16">
+          <label class="form-label">邮件主题</label>
+          <input type="text" id="email-subject" class="form-input" value="${escapeHtml(template.subject)}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">邮件内容</label>
+          <textarea class="form-textarea" id="email-content" style="min-height:200px">${escapeHtml(template.content)}</textarea>
+        </div>
+        <button class="btn btn-primary" id="confirm-send-email" data-app-id="${appId}" data-email="${escapeHtml(email)}">确认发送</button>
+      `);
+
+      document.getElementById('confirm-send-email').addEventListener('click', async function() {
+        const subject = document.getElementById('email-subject').value.trim();
+        const content = document.getElementById('email-content').value.trim();
+        if (!subject || !content) {
+          toast('请填写邮件主题和内容');
+          return;
+        }
+
+        this.disabled = true;
+        this.textContent = '发送中...';
+
+        try {
+          await CloudDB.collection('email_log').add({
+            data: {
+              applicationId: appId,
+              email,
+              subject,
+              content,
+              sentAt: serverDate()
+            }
+          });
+          toast('邮件已发送（模拟）');
+          closeModal();
+          renderAdminResults();
+        } catch (e) {
+          console.error('发送邮件失败', e);
+          toast('发送失败：' + (e.message || '网络错误'));
+        } finally {
+          this.disabled = false;
+          this.textContent = '确认发送';
+        }
+      });
+    }
+
+    // ================================================================
+    // ===== 页面11: 表单配置 =====
+    // ================================================================
+    let formConfigFields = [];
+
+    async function renderAdminFormConfig() {
+      const session = requireRole(['admin']);
+      if (!session) return;
+
+      setLoading('加载表单配置...');
+      try {
+        formConfigFields = await getFormConfig();
+        renderFormConfigContent();
+      } catch (e) {
+        console.error('加载表单配置失败', e);
+        setContent(`
+          <div class="page">
+            <div class="card text-center">
+              <p class="text-light">加载失败</p>
+              <button class="btn btn-primary mt-16" onclick="location.reload()">重试</button>
+            </div>
+          </div>
+        `, { back: true, title: '表单配置' });
+      }
+    }
+
+    function renderFormConfigContent() {
+      const fieldsHtml = formConfigFields.map((f, i) => `
+        <div class="field-config-item">
+          <div class="fc-info">
+            <div class="fc-name">${escapeHtml(f.label)} ${f.required ? '<span style="color:var(--danger)">*</span>' : ''}</div>
+            <div class="fc-meta">key: ${escapeHtml(f.key)} · 类型: ${{ text: '文本', textarea: '长文本', number: '数字', select: '选择' }[f.type] || f.type}${f.options && f.options.length > 0 ? ' · ' + f.options.length + '个选项' : ''}</div>
+          </div>
+          <div class="fc-actions">
+            <button class="fc-btn" onclick="moveField(${i}, -1)" ${i === 0 ? 'disabled' : ''}>↑</button>
+            <button class="fc-btn" onclick="moveField(${i}, 1)" ${i === formConfigFields.length - 1 ? 'disabled' : ''}>↓</button>
+            <button class="fc-btn" onclick="editField(${i})">✎</button>
+            <button class="fc-btn danger" onclick="deleteField(${i})">✕</button>
+          </div>
+        </div>
+      `).join('');
+
+      setContent(`
+        <div class="page">
+          <div class="card">
+            <div class="card-title">
+              报名表单字段
+              <button class="btn btn-primary btn-sm" id="add-field-btn">+ 新增</button>
+            </div>
+            <p class="text-light text-sm mb-16">配置报名表单的字段，保存后立即生效</p>
+            ${fieldsHtml || '<div class="empty-state"><p>暂无字段，点击新增</p></div>'}
+          </div>
+          <button class="btn btn-primary" id="save-form-config">保存配置</button>
+        </div>
+      `, { back: true, title: '表单配置' });
+
+      document.getElementById('add-field-btn').addEventListener('click', () => editField(-1));
+      document.getElementById('save-form-config').addEventListener('click', handleSaveFormConfig);
+    }
+
+    function moveField(index, direction) {
+      const newIndex = index + direction;
+      if (newIndex < 0 || newIndex >= formConfigFields.length) return;
+      const temp = formConfigFields[index];
+      formConfigFields[index] = formConfigFields[newIndex];
+      formConfigFields[newIndex] = temp;
+      renderFormConfigContent();
+    }
+
+    function deleteField(index) {
+      if (!confirm('确定删除该字段吗？')) return;
+      formConfigFields.splice(index, 1);
+      renderFormConfigContent();
+    }
+
+    function editField(index) {
+      const isNew = index === -1;
+      const field = isNew ? {
+        id: 'f_' + Date.now(),
+        key: '',
+        label: '',
+        type: 'text',
+        required: false,
+        placeholder: '',
+        options: [],
+        isSystem: false
+      } : { ...formConfigFields[index] };
+
+      showModal(`
+        <div class="modal-header">
+          <span class="modal-title">${isNew ? '新增字段' : '编辑字段'}</span>
+          <span class="modal-close" onclick="closeModal()">×</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">字段名称<span class="req">*</span></label>
+          <input type="text" id="fc-label" class="form-input" value="${escapeHtml(field.label)}" placeholder="如：姓名">
+        </div>
+        <div class="form-group">
+          <label class="form-label">字段key<span class="req">*</span></label>
+          <input type="text" id="fc-key" class="form-input" value="${escapeHtml(field.key)}" placeholder="如：name（英文）">
+        </div>
+        <div class="form-group">
+          <label class="form-label">类型</label>
+          <select class="form-select" id="fc-type">
+            <option value="text" ${field.type === 'text' ? 'selected' : ''}>文本</option>
+            <option value="textarea" ${field.type === 'textarea' ? 'selected' : ''}>长文本</option>
+            <option value="number" ${field.type === 'number' ? 'selected' : ''}>数字</option>
+            <option value="select" ${field.type === 'select' ? 'selected' : ''}>选择</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">placeholder</label>
+          <input type="text" id="fc-placeholder" class="form-input" value="${escapeHtml(field.placeholder || '')}" placeholder="提示文字">
+        </div>
+        <div class="form-group">
+          <label class="form-label">选项（每行一个，仅选择类型生效）</label>
+          <textarea class="form-textarea" id="fc-options" placeholder="选项1&#10;选项2">${escapeHtml((field.options || []).join('\n'))}</textarea>
+        </div>
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="fc-required" ${field.required ? 'checked' : ''} style="width:20px;height:20px">
+            <span class="form-label" style="margin:0">必填项</span>
+          </label>
+        </div>
+        <button class="btn btn-primary" id="save-field-btn">${isNew ? '添加字段' : '保存修改'}</button>
+      `);
+
+      document.getElementById('save-field-btn').addEventListener('click', () => {
+        const label = document.getElementById('fc-label').value.trim();
+        const key = document.getElementById('fc-key').value.trim();
+        if (!label || !key) {
+          toast('请填写字段名称和key');
+          return;
+        }
+
+        const updatedField = {
+          id: field.id,
+          key,
+          label,
+          type: document.getElementById('fc-type').value,
+          required: document.getElementById('fc-required').checked,
+          placeholder: document.getElementById('fc-placeholder').value.trim(),
+          options: document.getElementById('fc-options').value.trim().split('\n').map(s => s.trim()).filter(Boolean),
+          isSystem: field.isSystem || false
+        };
+
+        if (isNew) {
+          formConfigFields.push(updatedField);
+        } else {
+          formConfigFields[index] = updatedField;
+        }
+        closeModal();
+        renderFormConfigContent();
+      });
+    }
+
+    async function handleSaveFormConfig() {
+      const btn = document.getElementById('save-form-config');
+      btn.disabled = true;
+      btn.textContent = '保存中...';
+
+      try {
+        // 查找现有配置
+        const existing = await CloudDB.collection('config').where({ type: 'form_config' }).getOne();
+        if (existing) {
+          await CloudDB.collection('config').doc(existing._id).update({
+            data: { fields: formConfigFields, updatedAt: serverDate() }
+          });
+        } else {
+          await CloudDB.collection('config').add({
+            data: { type: 'form_config', fields: formConfigFields, createdAt: serverDate() }
+          });
+        }
+        toast('表单配置保存成功');
+      } catch (e) {
+        console.error('保存表单配置失败', e);
+        toast('保存失败：' + (e.message || '网络错误'));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '保存配置';
+      }
+    }
+
+    // ================================================================
+    // ===== 页面12: 数据统计 =====
+    // ================================================================
+    async function renderAdminStatistics() {
+      const session = requireRole(['admin']);
+      if (!session) return;
+
+      setLoading('统计数据加载中...');
+      try {
+        const applications = await CloudDB.collection('applications').orderBy('createdAt', 'desc').limit(500).get();
+        const total = applications.length;
+
+        // 审核状态分布
+        const reviewStats = { pending: 0, passed: 0, rejected: 0 };
+        applications.forEach(a => { reviewStats[a.reviewStatus] = (reviewStats[a.reviewStatus] || 0) + 1; });
+
+        // 面试结果分布
+        const resultStats = { not_started: 0, passed: 0, failed: 0, waitlist: 0, training: 0 };
+        applications.forEach(a => { resultStats[a.interviewResult] = (resultStats[a.interviewResult] || 0) + 1; });
+
+        // 志愿组别分布
+        const groupStats = {};
+        GROUPS.forEach(g => groupStats[g] = 0);
+        applications.forEach(a => { if (a.firstGroup) groupStats[a.firstGroup] = (groupStats[a.firstGroup] || 0) + 1; });
+
+        // 学院分布
+        const collegeStats = {};
+        applications.forEach(a => {
+          if (a.college) {
+            const c = a.college.length > 10 ? a.college.substring(0, 10) + '...' : a.college;
+            collegeStats[c] = (collegeStats[c] || 0) + 1;
+          }
+        });
+        const topColleges = Object.entries(collegeStats).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+        // 年级分布
+        const gradeStats = {};
+        applications.forEach(a => { if (a.grade) gradeStats[a.grade] = (gradeStats[a.grade] || 0) + 1; });
+
+        // 性别分布
+        const genderStats = {};
+        applications.forEach(a => { if (a.gender) genderStats[a.gender] = (genderStats[a.gender] || 0) + 1; });
+
+        function barChart(data, maxVal) {
+          if (Object.keys(data).length === 0 || maxVal === 0) {
+            return '<p class="text-light text-sm text-center" style="padding:8px 0">暂无数据</p>';
+          }
+          return Object.entries(data).map(([label, value]) => {
+            const pct = maxVal > 0 ? (value / maxVal * 100) : 0;
+            return `
+              <div class="bar-row">
+                <span class="bar-label">${escapeHtml(label)}</span>
+                <div class="bar-bg"><div class="bar-fill" style="width:${pct}%"></div></div>
+                <span class="bar-value">${value}</span>
+              </div>
+            `;
+          }).join('');
+        }
+
+        setContent(`
+          <div class="page">
+            <div class="stat-grid">
+              <div class="stat-card">
+                <div class="stat-num">${total}</div>
+                <div class="stat-label">总报名人数</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-num">${reviewStats.passed}</div>
+                <div class="stat-label">审核通过</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-num">${reviewStats.pending}</div>
+                <div class="stat-label">待审核</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-num">${resultStats.passed}</div>
+                <div class="stat-label">面试通过</div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-title">审核状态分布</div>
+              <div class="bar-chart">
+                ${barChart({
+                  '待审核': reviewStats.pending,
+                  '已通过': reviewStats.passed,
+                  '已拒绝': reviewStats.rejected
+                }, total)}
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-title">面试结果分布</div>
+              <div class="bar-chart">
+                ${barChart({
+                  '未面试': resultStats.not_started,
+                  '通过': resultStats.passed,
+                  '未通过': resultStats.failed,
+                  '候补': resultStats.waitlist,
+                  '试训中': resultStats.training
+                }, total)}
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-title">第一志愿分布</div>
+              <div class="bar-chart">
+                ${barChart(groupStats, Math.max(...Object.values(groupStats), 1))}
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-title">年级分布</div>
+              <div class="bar-chart">
+                ${barChart(gradeStats, Math.max(...Object.values(gradeStats), 1))}
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-title">性别分布</div>
+              <div class="bar-chart">
+                ${barChart(genderStats, Math.max(...Object.values(genderStats), 1))}
+              </div>
+            </div>
+
+            ${topColleges.length > 0 ? `
+              <div class="card">
+                <div class="card-title">学院分布 (Top 8)</div>
+                <div class="bar-chart">
+                  ${barChart(Object.fromEntries(topColleges), Math.max(...topColleges.map(c => c[1]), 1))}
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        `, { back: true, title: '数据统计' });
+      } catch (e) {
+        console.error('加载统计数据失败', e);
+        setContent(`
+          <div class="page">
+            <div class="card text-center">
+              <p class="text-light">加载失败</p>
+              <button class="btn btn-primary mt-16" onclick="location.reload()">重试</button>
+            </div>
+          </div>
+        `, { back: true, title: '数据统计' });
+      }
+    }
+
+    // ================================================================
+    // ===== 入口点 =====
+    // ================================================================
+    async function main() {
+      // 绑定返回按钮
+      document.getElementById('navbar-back-btn').addEventListener('click', () => {
+        if (history.length > 1) history.back();
+        else location.hash = '/home';
+      });
+
+      // 绑定重试按钮
+      document.getElementById('retry-btn').addEventListener('click', () => {
+        document.getElementById('error-screen').style.display = 'none';
+        document.getElementById('loading-screen').style.display = 'flex';
+        main();
+      });
+
+      try {
+        // 初始化 CloudBase
+        await initCloud();
+
+        // 隐藏加载页，显示应用
+        document.getElementById('loading-screen').style.display = 'none';
+        document.getElementById('app').style.display = 'flex';
+
+        // 启动路由
+        window.addEventListener('hashchange', router);
+
+        // 如果没有 hash，根据登录状态跳转
+        if (!location.hash) {
+          const session = Session.get();
+          location.hash = session ? '/home' : '/login';
+        } else {
+          router();
+        }
+      } catch (e) {
+        console.error('初始化失败', e);
+        document.getElementById('loading-screen').style.display = 'none';
+        document.getElementById('error-message').textContent = e.message || '未知错误，请检查网络后重试';
+        document.getElementById('error-screen').style.display = 'flex';
+      }
+    }
+
+    // 启动
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', main);
+    } else {
+      main();
+    }
+  </script>
+</body>
+</html>
